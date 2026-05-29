@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shoot Schedule</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f7f8fa;--surface:#fff;--border:#e8eaed;
+  --text:#1a1a2e;--sub:#6b7280;--accent:#6366f1;
+  --shadow:0 2px 14px rgba(0,0,0,.07);--radius:12px;
+}
+body{font-family:'Segoe UI',-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;overflow:hidden;height:100vh}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow);z-index:100;gap:12px;flex-wrap:wrap;flex-shrink:0}
+.logo{font-size:16px;font-weight:800;color:var(--accent);letter-spacing:-.5px;white-space:nowrap}
+.date-nav{display:flex;align-items:center;gap:8px}
+.date-nav button{background:none;border:1px solid var(--border);border-radius:8px;padding:5px 11px;cursor:pointer;font-size:13px;color:var(--sub);transition:all .2s}
+.date-nav button:hover{border-color:var(--accent);color:var(--accent)}
+.date-label{font-size:14px;font-weight:700;min-width:160px;text-align:center}
+.btn{border:none;border-radius:8px;padding:7px 15px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-accent{background:var(--accent);color:#fff}.btn-ghost{background:var(--border);color:var(--sub)}
+.btn:hover{opacity:.82}
+/* sync status */
+.sync-status{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;display:flex;align-items:center;gap:5px;transition:all .3s}
+.sync-status.saved{background:#d1fae5;color:#065f46}
+.sync-status.saving{background:#fef3c7;color:#92400e}
+.sync-status.error{background:#fee2e2;color:#991b1b}
+.tabs{display:flex;gap:4px;padding:10px 20px 0;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0}
+.tab{padding:7px 16px;font-size:13px;font-weight:600;color:var(--sub);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
+.tab.active{color:var(--accent);border-color:var(--accent)}
+.main{display:flex;flex:1;overflow:hidden}
+
+/* DAY VIEW */
+.day-view{flex:1;overflow-y:auto;padding:16px 12px 20px 16px;display:flex;gap:12px;position:relative}
+.time-axis{width:50px;flex-shrink:0;position:relative}
+.time-tick{position:absolute;right:8px;font-size:10px;color:var(--sub);font-weight:500;transform:translateY(-50%);white-space:nowrap;pointer-events:none}
+.schedule-col{flex:1;position:relative;border-left:1px solid var(--border)}
+.grid-line{position:absolute;left:0;right:0;border-top:1px solid var(--border);pointer-events:none}
+.grid-line.minor{border-top:1px dashed #f0f0f0}
+.now-line{position:absolute;left:0;right:0;height:2px;background:#ef4444;z-index:15;pointer-events:none}
+.now-line::before{content:'';position:absolute;left:-5px;top:-4px;width:10px;height:10px;border-radius:50%;background:#ef4444}
+.ev{position:absolute;left:4px;right:4px;border-radius:8px;padding:6px 9px;font-size:12px;cursor:pointer;z-index:5;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden;user-select:none;transition:box-shadow .15s}
+.ev:hover{box-shadow:0 5px 16px rgba(0,0,0,.16)}
+.ev.dragging{opacity:.75;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.22);cursor:grabbing}
+.ev.resizing{z-index:50}
+.ev-title{font-weight:700;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev-time{font-size:10px;opacity:.75;margin-top:1px}
+.ev-meta{margin-top:3px;display:flex;flex-direction:column;gap:2px}
+.ev-tag{display:inline-flex;align-items:center;gap:2px;font-size:10px;font-weight:500;padding:1px 5px;border-radius:20px;background:rgba(255,255,255,.55);width:fit-content;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ev-del{position:absolute;top:4px;right:6px;font-size:14px;cursor:pointer;opacity:0;transition:opacity .15s;background:rgba(255,255,255,.65);border-radius:50%;width:17px;height:17px;display:flex;align-items:center;justify-content:center;line-height:1;z-index:10}
+.ev:hover .ev-del{opacity:1}
+.ev-resize{position:absolute;bottom:0;left:0;right:0;height:8px;cursor:s-resize;z-index:10;border-radius:0 0 8px 8px;display:flex;align-items:center;justify-content:center}
+.ev-resize::after{content:'';width:24px;height:2px;border-radius:2px;background:rgba(0,0,0,.2)}
+.c0{background:#e0e7ff;color:#3730a3}.c1{background:#fce7f3;color:#9d174d}
+.c2{background:#d1fae5;color:#065f46}.c3{background:#fef3c7;color:#92400e}
+.c4{background:#fee2e2;color:#991b1b}.c5{background:#e0f2fe;color:#075985}
+.c6{background:#f3e8ff;color:#6b21a8}
+
+/* SIDEBAR */
+.sidebar{width:280px;flex-shrink:0;border-left:1px solid var(--border);background:var(--surface);overflow-y:auto;padding:14px 13px}
+.sidebar-section{margin-bottom:16px}
+.sidebar-section h4{font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between}
+.sidebar-section h4 span{font-size:10px;color:var(--accent);cursor:pointer;font-weight:600;text-transform:none;letter-spacing:0}
+.sidebar-section h4 span:hover{text-decoration:underline}
+.btn-grid{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px}
+.tag-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;border:1.5px solid var(--border);background:var(--bg);font-size:11px;font-weight:600;cursor:default;transition:all .18s;color:var(--text);white-space:nowrap}
+.tag-btn .tb-del{font-size:13px;line-height:1;color:#bbb;margin-left:2px;transition:color .15s;cursor:pointer}
+.tag-btn .tb-del:hover{color:#ef4444}
+.size-badge{display:inline-flex;align-items:center;background:var(--accent);color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:10px;margin-left:2px;letter-spacing:.3px}
+.size-badge.empty{background:#d1d5db;color:#6b7280}
+.product-name-click{cursor:pointer;transition:color .15s}
+.product-name-click:hover{color:var(--accent);text-decoration:underline}
+.add-inline{display:flex;gap:5px;margin-top:3px}
+.add-inline input{flex:1;border:1px solid var(--border);border-radius:7px;padding:5px 9px;font-size:12px;outline:none;transition:border .2s}
+.add-inline input:focus{border-color:var(--accent)}
+.add-inline button{background:var(--accent);color:#fff;border:none;border-radius:7px;padding:5px 10px;font-size:12px;cursor:pointer;font-weight:700}
+.mini-cal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.mini-cal-header button{background:none;border:none;cursor:pointer;color:var(--sub);font-size:16px;line-height:1;padding:1px 3px}
+.mini-cal-header span{font-size:12px;font-weight:700}
+.mini-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.mini-day-name{font-size:10px;color:var(--sub);text-align:center;font-weight:600;padding:2px 0}
+.mini-day{font-size:11px;text-align:center;padding:4px 1px;border-radius:5px;cursor:pointer;transition:background .15s;font-weight:500;position:relative}
+.mini-day:hover{background:var(--bg)}
+.mini-day.selected{background:var(--accent);color:#fff}
+.mini-day.today{font-weight:800;color:var(--accent)}
+.mini-day.today.selected{color:#fff}
+.mini-day.has-ev::after{content:'';position:absolute;bottom:1px;left:50%;transform:translateX(-50%);width:3px;height:3px;border-radius:50%;background:var(--accent)}
+.mini-day.has-ev.selected::after{background:#fff}
+
+/* LIST VIEW */
+.list-view{flex:1;overflow-y:auto;padding:20px}
+.list-date-group{margin-bottom:22px}
+.list-date-header{font-size:13px;font-weight:700;color:var(--sub);margin-bottom:9px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+.list-item{background:var(--surface);border-radius:10px;padding:11px 14px;margin-bottom:7px;box-shadow:var(--shadow);display:flex;align-items:flex-start;gap:11px;cursor:pointer;transition:box-shadow .15s}
+.list-item:hover{box-shadow:0 4px 18px rgba(0,0,0,.12)}
+.list-color{width:4px;border-radius:2px;flex-shrink:0;align-self:stretch;min-height:36px}
+.list-info{flex:1;min-width:0}
+.list-title{font-weight:700;font-size:13px}
+.list-time{font-size:11px;color:var(--sub);margin-top:2px}
+.list-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.list-tag{font-size:11px;padding:2px 7px;border-radius:20px;background:var(--bg);color:var(--sub);font-weight:500}
+.list-del{color:#ccc;cursor:pointer;font-size:17px;flex-shrink:0;transition:color .15s;line-height:1;padding:2px}
+.list-del:hover{color:#ef4444}
+.empty{text-align:center;color:var(--sub);padding:60px 0;font-size:14px}
+.drag-tooltip{position:fixed;background:rgba(30,30,50,.85);color:#fff;font-size:11px;font-weight:700;padding:4px 9px;border-radius:6px;pointer-events:none;z-index:999;display:none;letter-spacing:.3px}
+
+/* LOADING SCREEN */
+.loading-screen{position:fixed;inset:0;background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:500;gap:14px}
+.loading-spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-screen p{font-size:14px;color:var(--sub);font-weight:600}
+
+/* MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.32);z-index:200;align-items:center;justify-content:center}
+.overlay.show{display:flex}
+.modal{background:var(--surface);border-radius:var(--radius);padding:24px;width:450px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.18);max-height:90vh;overflow-y:auto}
+.modal h3{font-size:15px;font-weight:800;margin-bottom:16px}
+.field{margin-bottom:12px}
+.field label{font-size:10px;font-weight:700;color:var(--sub);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.field input,.field textarea{width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 11px;font-size:13px;outline:none;transition:border .2s;font-family:inherit}
+.field input:focus,.field textarea:focus{border-color:var(--accent)}
+.field textarea{resize:vertical;min-height:50px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.color-row{display:flex;gap:6px;flex-wrap:wrap}
+.cswatch{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s}
+.cswatch.active,.cswatch:hover{transform:scale(1.25)}
+.toggle-group{display:flex;flex-wrap:wrap;gap:5px}
+.prod-toggle-btn{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;border:1.5px solid var(--border);background:var(--bg);font-size:12px;font-weight:600;cursor:pointer;transition:all .18s;color:var(--sub)}
+.prod-toggle-btn:hover{border-color:var(--accent);color:var(--accent)}
+.prod-toggle-btn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.prod-toggle-btn .psz{font-size:9px;font-weight:800;padding:1px 5px;border-radius:10px;background:rgba(255,255,255,.35);letter-spacing:.3px}
+.prod-toggle-btn.on .psz{background:rgba(255,255,255,.3)}
+.toggle-btn{padding:4px 11px;border-radius:20px;border:1.5px solid var(--border);background:var(--bg);font-size:12px;font-weight:600;cursor:pointer;transition:all .18s;color:var(--sub)}
+.toggle-btn:hover{border-color:var(--accent);color:var(--accent)}
+.toggle-btn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.or-divider{font-size:10px;color:var(--sub);margin:5px 0 3px;font-weight:500}
+.chip-row{display:flex;gap:5px;margin-top:4px;flex-wrap:wrap;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:3px;background:var(--accent);color:#fff;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:600}
+.chip-x{cursor:pointer;opacity:.7;font-size:12px;line-height:1}
+.chip-x:hover{opacity:1}
+.chip-add-row{display:flex;gap:5px;margin-top:5px}
+.chip-add-row input{flex:1;border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;outline:none}
+.chip-add-row input:focus{border-color:var(--accent)}
+.chip-add-row button{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;font-weight:700}
+.modal-btns{display:flex;gap:8px;margin-top:16px}
+.modal-btns button{flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:opacity .2s}
+.mcancel{background:var(--border);color:var(--sub)}.msave{background:var(--accent);color:#fff}
+.mcancel:hover,.msave:hover{opacity:.8}
+.prod-modal{background:var(--surface);border-radius:var(--radius);padding:22px;width:340px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.18)}
+.prod-modal h3{font-size:14px;font-weight:800;margin-bottom:14px}
+.size-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.size-chip{padding:5px 13px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);font-size:12px;font-weight:700;cursor:pointer;transition:all .18s;color:var(--sub)}
+.size-chip:hover{border-color:var(--accent);color:var(--accent)}
+.size-chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.custom-size-row{display:flex;gap:6px;margin-bottom:14px}
+.custom-size-row input{flex:1;border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;outline:none}
+.custom-size-row input:focus{border-color:var(--accent)}
+.custom-size-row button{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 11px;font-size:12px;cursor:pointer;font-weight:700}
+.prod-modal-btns{display:flex;gap:8px}
+.prod-modal-btns button{flex:1;padding:8px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none}
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div class="loading-screen" id="loadingScreen">
+  <div class="loading-spinner"></div>
+  <p>Loading schedule...</p>
+</div>
+
+<header>
+  <div class="logo">📸 Shoot Schedule</div>
+  <div class="date-nav">
+    <button id="prevDay">‹</button>
+    <div class="date-label" id="dateLabel"></div>
+    <button id="nextDay">›</button>
+    <button class="btn btn-ghost" id="todayBtn" style="padding:5px 11px">Today</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="sync-status saved" id="syncStatus">✓ Saved</div>
+    <button class="btn btn-accent" id="openAdd">+ Add Event</button>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" id="tab-day" onclick="switchTab('day')">Day View</div>
+  <div class="tab" id="tab-list" onclick="switchTab('list')">All Events</div>
+</div>
+
+<div class="main">
+  <div id="dayViewWrap" style="flex:1;display:flex;overflow:hidden">
+    <div class="day-view" id="dayView">
+      <div class="time-axis" id="timeAxis"></div>
+      <div class="schedule-col" id="scheduleCol"></div>
+    </div>
+    <div class="sidebar">
+      <div class="sidebar-section">
+        <h4>Calendar</h4>
+        <div id="miniCal"></div>
+      </div>
+      <div class="sidebar-section">
+        <h4>Models <span onclick="focusAdd('model')">+ Add</span></h4>
+        <div class="btn-grid" id="modelBtnGrid"></div>
+        <div class="add-inline" id="modelAddRow" style="display:none">
+          <input id="modelAddInput" placeholder="Model name" onkeydown="if(event.key==='Enter')commitAdd('model')">
+          <button onclick="commitAdd('model')">Add</button>
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <h4>Products <span onclick="focusAdd('product')">+ Add</span></h4>
+        <div class="btn-grid" id="productBtnGrid"></div>
+        <div class="add-inline" id="productAddRow" style="display:none">
+          <input id="productAddInput" placeholder="Product name" onkeydown="if(event.key==='Enter')commitAdd('product')">
+          <button onclick="commitAdd('product')">Add</button>
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <h4>Locations <span onclick="focusAdd('location')">+ Add</span></h4>
+        <div class="btn-grid" id="locationBtnGrid"></div>
+        <div class="add-inline" id="locationAddRow" style="display:none">
+          <input id="locationAddInput" placeholder="Location name" onkeydown="if(event.key==='Enter')commitAdd('location')">
+          <button onclick="commitAdd('location')">Add</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="listViewWrap" style="flex:1;display:none;overflow:hidden">
+    <div class="list-view" id="listView"></div>
+  </div>
+</div>
+
+<div class="drag-tooltip" id="dragTooltip"></div>
+
+<!-- MAIN MODAL -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3 id="modalTitle">New Event</h3>
+    <div class="field"><label>Title</label><input type="text" id="evTitle" placeholder="Session name"></div>
+    <div class="row2">
+      <div class="field"><label>Date</label><input type="date" id="evDate"></div>
+      <div class="field"><label>Color</label><div class="color-row" id="colorRow"></div></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Start</label><input type="time" id="evStart" step="300"></div>
+      <div class="field"><label>End</label><input type="time" id="evEnd" step="300"></div>
+    </div>
+    <div class="field">
+      <label>👤 Models</label>
+      <div class="toggle-group" id="modelToggleGroup"></div>
+      <div class="or-divider">or custom:</div>
+      <div class="chip-row" id="modelCustomChips"></div>
+      <div class="chip-add-row"><input id="modelCustomInput" placeholder="Type & Enter" onkeydown="if(event.key==='Enter')addCustomChip('model')"><button onclick="addCustomChip('model')">+</button></div>
+    </div>
+    <div class="field">
+      <label>👗 Products & Sizes</label>
+      <div id="productToggleGroup" class="toggle-group"></div>
+      <div class="or-divider">or custom product:</div>
+      <div class="chip-row" id="productCustomChips"></div>
+      <div class="chip-add-row"><input id="productCustomInput" placeholder="Type & Enter" onkeydown="if(event.key==='Enter')addCustomChip('product')"><button onclick="addCustomChip('product')">+</button></div>
+      <!-- per-event size selection -->
+      <div id="productSizeSelectors" style="margin-top:10px;display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+    <div class="field">
+      <label>📍 Locations</label>
+      <div class="toggle-group" id="locationToggleGroup"></div>
+      <div class="or-divider">or custom:</div>
+      <div class="chip-row" id="locationCustomChips"></div>
+      <div class="chip-add-row"><input id="locationCustomInput" placeholder="Type & Enter" onkeydown="if(event.key==='Enter')addCustomChip('location')"><button onclick="addCustomChip('location')">+</button></div>
+    </div>
+    <div class="field"><label>Notes</label><textarea id="evNote" placeholder="Additional notes"></textarea></div>
+    <div class="modal-btns">
+      <button class="mcancel" id="cancelBtn">Cancel</button>
+      <button class="msave" id="saveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRODUCT SIZE MODAL -->
+<div class="overlay" id="prodOverlay">
+  <div class="prod-modal">
+    <h3 id="prodModalTitle">Edit Product</h3>
+    <div style="font-size:11px;color:var(--sub);margin-bottom:10px">Select sizes available for this product:</div>
+    <div class="size-grid" id="sizeGrid"></div>
+    <div class="custom-size-row">
+      <input id="customSizeInput" placeholder="Custom size (e.g. 38EU, W29)" onkeydown="if(event.key==='Enter')addCustomSize()">
+      <button onclick="addCustomSize()">+ Add</button>
+    </div>
+    <div class="prod-modal-btns">
+      <button style="background:var(--border);color:var(--sub)" onclick="closeProdModal()">Cancel</button>
+      <button style="background:var(--accent);color:#fff" onclick="saveProdSizes()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ──
+const BIN_ID = '6a19c79addf5aa59f7755806';
+const API_KEY = '$2a$10$vs9yBR4mqZ9vlQvUnxjbFeTGwsEyb7OuTgHhgdRHgFqgeyIoBxdze';
+const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+
+const COLORS=['c0','c1','c2','c3','c4','c5','c6'];
+const COLOR_BG=['#e0e7ff','#fce7f3','#d1fae5','#fef3c7','#fee2e2','#e0f2fe','#f3e8ff'];
+const STD_SIZES=['XS','S','M','L','XL','XXL','Free','34','36','38','40','42','44'];
+const PX_PER_MIN=64/60, SNAP=5;
+
+let data={events:[],models:['Jia Kim','Suhyeon Park','Nayeon Lee'],products:[{name:'White Blouse A',sizes:['S','M']},{name:'Denim B',sizes:['M','L']},{name:'Summer Dress C',sizes:['Free']}],locations:['Studio 1','Rooftop','Cafe Set']};
+let currentDate=new Date(); currentDate.setHours(0,0,0,0);
+let editId=null,selColor=0,activeTab='day';
+let sel={model:new Set(),product:new Set(),location:new Set()};
+let custom={model:[],product:[],location:[]};
+let evProductSizes={}; // {productName: selectedSize}
+let dragState=null,resizeState=null;
+let saveTimer=null;
+const tooltip=document.getElementById('dragTooltip');
+const syncEl=document.getElementById('syncStatus');
+
+let editingProductIdx=null,tmpSizes=new Set();
+
+const fmt=d=>d.toISOString().slice(0,10);
+const dateFromStr=s=>new Date(s+'T00:00:00');
+const minToTime=m=>{m=Math.max(0,Math.min(1439,m));return`${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;};
+const timeToMin=t=>{if(!t)return 0;const[h,m]=t.split(':').map(Number);return h*60+(m||0);};
+const snapMin=m=>Math.round(m/SNAP)*SNAP;
+const escQ=s=>s.replace(/'/g,"\\'");
+const getProdObj=name=>data.products.find(p=>p.name===name)||{name,sizes:[]};
+const getProdSizeStr=name=>{const p=getProdObj(name);return p.sizes&&p.sizes.length?p.sizes.join(', '):''};
+
+// ── JSONBIN API ──
+async function loadFromCloud(){
+  try{
+    const res=await fetch(API_URL+'/latest',{headers:{'X-Master-Key':API_KEY}});
+    if(!res.ok) throw new Error('Load failed');
+    const json=await res.json();
+    const remote=json.record;
+    if(remote&&remote.events){
+      data=remote;
+      // migrate old string products
+      if(data.products&&data.products.length&&typeof data.products[0]==='string'){
+        data.products=data.products.map(p=>({name:p,sizes:[]}));
+      }
+    }
+  }catch(e){
+    console.warn('Cloud load failed, using defaults',e);
+  }
+  document.getElementById('loadingScreen').style.display='none';
+  renderAll();
+}
+
+async function saveToCloud(){
+  setSyncStatus('saving');
+  try{
+    const res=await fetch(API_URL,{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','X-Master-Key':API_KEY},
+      body:JSON.stringify(data)
+    });
+    if(!res.ok) throw new Error('Save failed');
+    setSyncStatus('saved');
+  }catch(e){
+    setSyncStatus('error');
+    console.error('Save failed',e);
+  }
+}
+
+function setSyncStatus(s){
+  syncEl.className='sync-status '+s;
+  if(s==='saving') syncEl.textContent='⏳ Saving...';
+  else if(s==='saved') syncEl.textContent='✓ Saved';
+  else syncEl.textContent='✗ Error';
+}
+
+// auto-save with debounce (1s)
+function save(){
+  clearTimeout(saveTimer);
+  setSyncStatus('saving');
+  saveTimer=setTimeout(()=>saveToCloud(),1000);
+}
+
+// ── TABS ──
+function switchTab(t){
+  activeTab=t;
+  document.getElementById('tab-day').className='tab'+(t==='day'?' active':'');
+  document.getElementById('tab-list').className='tab'+(t==='list'?' active':'');
+  document.getElementById('dayViewWrap').style.display=t==='day'?'flex':'none';
+  document.getElementById('listViewWrap').style.display=t==='list'?'flex':'none';
+  if(t==='list') renderList();
+}
+
+document.getElementById('prevDay').onclick=()=>{currentDate.setDate(currentDate.getDate()-1);renderAll();};
+document.getElementById('nextDay').onclick=()=>{currentDate.setDate(currentDate.getDate()+1);renderAll();};
+document.getElementById('todayBtn').onclick=()=>{currentDate=new Date();currentDate.setHours(0,0,0,0);renderAll();};
+
+function renderAll(){updateDateLabel();renderDayView();renderSidebar();renderMiniCal();if(activeTab==='list')renderList();}
+
+function updateDateLabel(){
+  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],d=currentDate;
+  document.getElementById('dateLabel').textContent=`${days[d.getDay()]}, ${d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`;
+}
+
+// ── DAY VIEW ──
+function renderDayView(){
+  const axis=document.getElementById('timeAxis'),col=document.getElementById('scheduleCol');
+  axis.innerHTML='';col.innerHTML='';
+  const totalPx=24*64;
+  col.style.height=totalPx+'px';axis.style.height=totalPx+'px';axis.style.position='relative';
+  for(let h=0;h<=24;h++){
+    const y=h*64;
+    const gl=document.createElement('div');gl.className='grid-line';gl.style.top=y+'px';col.appendChild(gl);
+    if(h<24){
+      const lbl=document.createElement('div');lbl.className='time-tick';lbl.style.top=y+'px';
+      lbl.textContent=`${String(h).padStart(2,'0')}:00`;axis.appendChild(lbl);
+      const gl2=document.createElement('div');gl2.className='grid-line minor';gl2.style.top=(y+32)+'px';col.appendChild(gl2);
+    }
+  }
+  const now=new Date();
+  if(fmt(now)===fmt(currentDate)){
+    const nl=document.createElement('div');nl.className='now-line';
+    nl.style.top=((now.getHours()*60+now.getMinutes())*PX_PER_MIN)+'px';col.appendChild(nl);
+  }
+  col.addEventListener('mousedown',colMouseDown);
+  const todayStr=fmt(currentDate);
+  placeEvents(data.events.filter(e=>e.date===todayStr).sort((a,b)=>a.start.localeCompare(b.start)),col);
+  const dv=document.getElementById('dayView');
+  if(dv.scrollTop===0) dv.scrollTop=8*64;
+}
+
+function placeEvents(dayEvs,col){
+  const placed=[];
+  dayEvs.forEach(ev=>{
+    const s=timeToMin(ev.start),e=Math.max(timeToMin(ev.end||ev.start)+5,s+5);
+    let c=0;placed.forEach(p=>{if(s<p.e&&e>p.s)c=Math.max(c,p.col+1);});
+    placed.push({ev,s,e,col:c});
+  });
+  placed.forEach(({ev,s,e,col:c})=>{
+    const totalCols=placed.filter(p=>p.s<e&&p.e>s).length||1;
+    const topPx=s*PX_PER_MIN,htPx=Math.max((e-s)*PX_PER_MIN,18);
+    const wPct=96/totalCols,lPct=2+c*wPct,rPct=2+(totalCols-c-1)*wPct;
+    const el=document.createElement('div');
+    el.className=`ev ${ev.color||'c0'}`;
+    el.style.top=topPx+'px';el.style.height=htPx+'px';
+    el.style.left=lPct+'%';el.style.right=rPct+'%';el.style.width='auto';
+    const prodTags=(ev.products||[]).map(pname=>{
+      const sz=ev.productSizes&&ev.productSizes[pname]?` [${ev.productSizes[pname]}]`:'';
+      return`👗 ${pname}${sz}`;
+    });
+    const tags=[];
+    if(ev.models?.length) tags.push(`👤 ${ev.models.join(', ')}`);
+    prodTags.forEach(t=>tags.push(t));
+    if(ev.locations?.length) tags.push(`📍 ${ev.locations.join(', ')}`);
+    el.innerHTML=`<div class="ev-del">×</div>
+      <div class="ev-title">${ev.title}</div>
+      <div class="ev-time">${ev.start} – ${ev.end}</div>
+      ${htPx>40?`<div class="ev-meta">${tags.map(t=>`<span class="ev-tag">${t}</span>`).join('')}</div>`:''}
+      <div class="ev-resize"></div>`;
+    el.querySelector('.ev-del').addEventListener('mousedown',e=>e.stopPropagation());
+    el.querySelector('.ev-del').addEventListener('click',e=>{e.stopPropagation();deleteEv(ev.id);});
+    el.querySelector('.ev-resize').addEventListener('mousedown',e=>{e.stopPropagation();startResize(e,ev,el);});
+    el.addEventListener('mousedown',e=>{if(e.target.classList.contains('ev-resize')||e.target.classList.contains('ev-del'))return;startDrag(e,ev,el);});
+    el.addEventListener('dblclick',e=>{e.stopPropagation();dragState=null;openModal(ev);});
+    col.appendChild(el);
+  });
+}
+
+function colMouseDown(e){
+  if(e.target!==e.currentTarget)return;
+  const rect=e.currentTarget.getBoundingClientRect();
+  openModal(null,fmt(currentDate),snapMin((e.clientY-rect.top)/PX_PER_MIN));
+}
+
+// ── DRAG ──
+function startDrag(e,ev,el){
+  e.preventDefault();
+  const rect=document.getElementById('scheduleCol').getBoundingClientRect();
+  const startY=e.clientY;
+  let moved=false;
+
+  function onMove(e2){
+    if(!moved && Math.abs(e2.clientY-startY)>5){
+      moved=true;
+      dragState={ev,el,offsetY:startY-(rect.top+timeToMin(ev.start)*PX_PER_MIN),durMin:timeToMin(ev.end)-timeToMin(ev.start),rect};
+      el.classList.add('dragging');showTooltip(ev.start,ev.end);
+    }
+    if(moved) onDragMove(e2);
+  }
+  function onUp(e2){
+    document.removeEventListener('mousemove',onMove);
+    document.removeEventListener('mouseup',onUp);
+    if(moved){
+      onDragEnd(e2);
+    }
+    // if not moved = click, let dblclick handle it naturally
+  }
+  document.addEventListener('mousemove',onMove);
+  document.addEventListener('mouseup',onUp);
+}
+function onDragMove(e){
+  if(!dragState)return;
+  const{el,offsetY,durMin,rect}=dragState;
+  const snapped=Math.max(0,Math.min(1439-durMin,snapMin((e.clientY-rect.top-offsetY)/PX_PER_MIN)));
+  el.style.top=(snapped*PX_PER_MIN)+'px';
+  updateTooltip(minToTime(snapped),minToTime(snapped+durMin));
+  tooltip.style.left=(e.clientX+14)+'px';tooltip.style.top=(e.clientY-10)+'px';
+}
+function onDragEnd(e){
+  if(!dragState)return;
+  const{ev,offsetY,durMin,rect}=dragState;
+  const snapped=Math.max(0,Math.min(1439-durMin,snapMin((e.clientY-rect.top-offsetY)/PX_PER_MIN)));
+  const idx=data.events.findIndex(x=>x.id===ev.id);
+  if(idx>=0){data.events[idx].start=minToTime(snapped);data.events[idx].end=minToTime(Math.min(1440,snapped+durMin));}
+  save();document.removeEventListener('mousemove',onDragMove);document.removeEventListener('mouseup',onDragEnd);
+  dragState=null;hideTooltip();renderDayView();
+}
+
+// ── RESIZE ──
+function startResize(e,ev,el){
+  e.preventDefault();
+  const rect=document.getElementById('scheduleCol').getBoundingClientRect();
+  resizeState={ev,el,rect,startMin:timeToMin(ev.start)};
+  el.classList.add('resizing');showTooltip(ev.start,ev.end);
+  document.addEventListener('mousemove',onResizeMove);document.addEventListener('mouseup',onResizeEnd);
+}
+function onResizeMove(e){
+  if(!resizeState)return;
+  const{el,rect,startMin}=resizeState;
+  const snapped=Math.max(startMin+SNAP,snapMin((e.clientY-rect.top)/PX_PER_MIN));
+  el.style.height=Math.max(SNAP*PX_PER_MIN,(snapped-startMin)*PX_PER_MIN)+'px';
+  updateTooltip(minToTime(startMin),minToTime(snapped));
+  tooltip.style.left=(e.clientX+14)+'px';tooltip.style.top=(e.clientY-10)+'px';
+}
+function onResizeEnd(e){
+  if(!resizeState)return;
+  const{ev,rect,startMin}=resizeState;
+  const snapped=Math.max(startMin+SNAP,snapMin((e.clientY-rect.top)/PX_PER_MIN));
+  const idx=data.events.findIndex(x=>x.id===ev.id);
+  if(idx>=0)data.events[idx].end=minToTime(Math.min(1440,snapped));
+  save();document.removeEventListener('mousemove',onResizeMove);document.removeEventListener('mouseup',onResizeEnd);
+  resizeState=null;hideTooltip();renderDayView();
+}
+
+function showTooltip(s,e){tooltip.style.display='block';tooltip.textContent=`${s} – ${e}`;}
+function updateTooltip(s,e){tooltip.textContent=`${s} – ${e}`;}
+function hideTooltip(){tooltip.style.display='none';}
+
+// ── LIST ──
+function renderList(){
+  const lv=document.getElementById('listView');
+  const sorted=[...data.events].sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start));
+  if(!sorted.length){lv.innerHTML='<div class="empty">No events yet</div>';return;}
+  const groups={};sorted.forEach(ev=>{(groups[ev.date]=groups[ev.date]||[]).push(ev);});
+  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  lv.innerHTML=Object.entries(groups).map(([date,evs])=>{
+    const d=dateFromStr(date);
+    return`<div class="list-date-group">
+      <div class="list-date-header">${days[d.getDay()]}, ${d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
+      ${evs.map(ev=>{
+        const bg=COLOR_BG[COLORS.indexOf(ev.color||'c0')]||'#e0e7ff';
+        const tags=[...(ev.models||[]).map(m=>`👤 ${m}`),           ...(ev.products||[]).map(p=>{const sz=ev.productSizes&&ev.productSizes[p]?` [${ev.productSizes[p]}]`:'';return`👗 ${p}${sz}`;  }), ...(ev.locations||[]).map(l=>`📍 ${l}`)];
+        return`<div class="list-item" onclick='openModal(${JSON.stringify(ev).replace(/'/g,"&#39;")})'>
+          <div class="list-color" style="background:${bg}"></div>
+          <div class="list-info">
+            <div class="list-title">${ev.title}</div>
+            <div class="list-time">⏰ ${ev.start} – ${ev.end}</div>
+            <div class="list-tags">${tags.map(t=>`<span class="list-tag">${t}</span>`).join('')}${ev.note?`<span class="list-tag">📝 ${ev.note}</span>`:''}</div>
+          </div>
+          <div class="list-del" onclick="event.stopPropagation();deleteEv(${ev.id})">×</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+}
+function deleteEv(id){data.events=data.events.filter(e=>e.id!==id);save();renderAll();}
+
+// ── MINI CAL ──
+function renderMiniCal(){
+  const mc=document.getElementById('miniCal');
+  const y=currentDate.getFullYear(),m=currentDate.getMonth();
+  const first=new Date(y,m,1).getDay(),daysIn=new Date(y,m+1,0).getDate();
+  const todayStr=fmt(new Date()),selStr=fmt(currentDate);
+  const evDates=new Set(data.events.map(e=>e.date));
+  let html=`<div class="mini-cal-header">
+    <button onclick="miniCalMove(-1)">‹</button>
+    <span>${new Date(y,m).toLocaleDateString('en-US',{month:'long',year:'numeric'})}</span>
+    <button onclick="miniCalMove(1)">›</button>
+  </div><div class="mini-cal">`;
+  ['S','M','T','W','T','F','S'].forEach(n=>html+=`<div class="mini-day-name">${n}</div>`);
+  for(let i=0;i<first;i++)html+=`<div></div>`;
+  for(let d=1;d<=daysIn;d++){
+    const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const cls=['mini-day',ds===selStr?'selected':'',ds===todayStr?'today':'',evDates.has(ds)?'has-ev':''].filter(Boolean).join(' ');
+    html+=`<div class="${cls}" onclick="jumpTo('${ds}')">${d}</div>`;
+  }
+  mc.innerHTML=html+'</div>';
+}
+function miniCalMove(n){currentDate=new Date(currentDate.getFullYear(),currentDate.getMonth()+n,1);renderAll();}
+function jumpTo(ds){currentDate=dateFromStr(ds);renderAll();}
+
+// ── SIDEBAR ──
+function renderSidebar(){
+  ['model','location'].forEach(type=>{
+    const arr=type==='model'?data.models:data.locations;
+    document.getElementById(type+'BtnGrid').innerHTML=arr.map(t=>`<div class="tag-btn"><span>${t}</span><span class="tb-del" onclick="removeTag('${type}','${escQ(t)}')">×</span></div>`).join('');
+  });
+  document.getElementById('productBtnGrid').innerHTML=data.products.map((p,i)=>{
+    const hasSz=p.sizes&&p.sizes.length;
+    return`<div class="tag-btn" style="flex-direction:column;align-items:flex-start;border-radius:10px;padding:6px 10px;width:100%">
+      <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+        <span class="product-name-click" onclick="openProdModal(${i})" style="font-weight:700">${p.name}</span>
+        <span class="tb-del" onclick="removeTag('product','${escQ(p.name)}')">×</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;margin-top:4px;flex-wrap:wrap">
+        <span style="font-size:10px;color:var(--sub)">Sizes:</span>
+        ${hasSz?p.sizes.map(s=>`<span class="size-badge">${s}</span>`).join(''):'<span class="size-badge empty">—</span>'}
+        <span onclick="openProdModal(${i})" style="font-size:10px;color:var(--accent);cursor:pointer;font-weight:600">✏️ edit</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+function focusAdd(type){document.getElementById(type+'AddRow').style.display='flex';document.getElementById(type+'AddInput').focus();}
+function commitAdd(type){
+  const inp=document.getElementById(type+'AddInput'),val=inp.value.trim();if(!val)return;
+  if(type==='product'){if(!data.products.find(p=>p.name===val)){data.products.push({name:val,sizes:[]});save();renderSidebar();renderToggleGroups();}}
+  else{const arr=type==='model'?data.models:data.locations;if(!arr.includes(val)){arr.push(val);save();renderSidebar();renderToggleGroups();}}
+  inp.value='';document.getElementById(type+'AddRow').style.display='none';
+}
+function removeTag(type,val){
+  if(type==='model') data.models=data.models.filter(x=>x!==val);
+  else if(type==='product') data.products=data.products.filter(x=>x.name!==val);
+  else data.locations=data.locations.filter(x=>x!==val);
+  save();renderSidebar();renderToggleGroups();
+}
+
+// ── PRODUCT SIZE MODAL ──
+function openProdModal(idx){
+  editingProductIdx=idx;const p=data.products[idx];
+  document.getElementById('prodModalTitle').textContent=`Sizes — ${p.name}`;
+  tmpSizes=new Set(p.sizes||[]);renderSizeGrid();
+  document.getElementById('customSizeInput').value='';
+  document.getElementById('prodOverlay').classList.add('show');
+}
+function renderSizeGrid(){
+  const all=[...new Set([...STD_SIZES,...(data.products[editingProductIdx]?.sizes||[]),...Array.from(tmpSizes)])];
+  document.getElementById('sizeGrid').innerHTML=all.map(s=>`<div class="size-chip${tmpSizes.has(s)?' on':''}" onclick="toggleSize('${escQ(s)}')">${s}</div>`).join('');
+}
+function toggleSize(s){tmpSizes.has(s)?tmpSizes.delete(s):tmpSizes.add(s);renderSizeGrid();}
+function addCustomSize(){const inp=document.getElementById('customSizeInput'),val=inp.value.trim();if(!val)return;tmpSizes.add(val);inp.value='';renderSizeGrid();}
+function saveProdSizes(){
+  if(editingProductIdx===null)return;
+  data.products[editingProductIdx].sizes=[...tmpSizes];
+  save();closeProdModal();renderSidebar();renderToggleGroups();renderDayView();
+}
+function closeProdModal(){document.getElementById('prodOverlay').classList.remove('show');}
+document.getElementById('prodOverlay').addEventListener('click',e=>{if(e.target===document.getElementById('prodOverlay'))closeProdModal();});
+
+// ── MODAL TOGGLES ──
+function renderToggleGroups(){
+  document.getElementById('modelToggleGroup').innerHTML=data.models.map(t=>`<button class="toggle-btn${sel.model.has(t)?' on':''}" onclick="toggleSel('model','${escQ(t)}')">${t}</button>`).join('');
+  document.getElementById('productToggleGroup').innerHTML=data.products.map(p=>{
+    const on=sel.product.has(p.name);
+    return`<button class="prod-toggle-btn${on?' on':''}" onclick="toggleSel('product','${escQ(p.name)}')">${p.name}</button>`;
+  }).join('');
+  document.getElementById('locationToggleGroup').innerHTML=data.locations.map(t=>`<button class="toggle-btn${sel.location.has(t)?' on':''}" onclick="toggleSel('location','${escQ(t)}')">${t}</button>`).join('');
+  renderProductSizeSelectors();
+}
+function renderProductSizeSelectors(){
+  const container=document.getElementById('productSizeSelectors');
+  const selected=[...sel.product,...custom.product];
+  if(!selected.length){container.innerHTML='';return;}
+  container.innerHTML=selected.map(pname=>{
+    const prod=getProdObj(pname);
+    const availSizes=prod.sizes&&prod.sizes.length?prod.sizes:[];
+    const curSize=evProductSizes[pname]||'';
+    if(!availSizes.length) return`<div style="font-size:11px;color:var(--sub);padding:4px 0">👗 <b>${pname}</b> — <span style="color:#bbb">No sizes registered</span> <span onclick="openProdModal(${data.products.findIndex(p=>p.name===pname)})" style="color:var(--accent);cursor:pointer;font-size:10px">+ Add sizes</span></div>`;
+    return`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:5px 8px;background:var(--bg);border-radius:8px">
+      <span style="font-size:11px;font-weight:700;min-width:80px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">👗 ${pname}</span>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
+        <button class="size-chip${curSize===''?' on':''}" style="padding:3px 8px;font-size:10px" onclick="setEvSize('${escQ(pname)}','')">—</button>
+        ${availSizes.map(s=>`<button class="size-chip${curSize===s?' on':''}" style="padding:3px 8px;font-size:10px" onclick="setEvSize('${escQ(pname)}','${escQ(s)}')">${s}</button>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+function setEvSize(pname,size){evProductSizes[pname]=size;renderProductSizeSelectors();}
+function toggleSel(type,val){
+  sel[type].has(val)?sel[type].delete(val):sel[type].add(val);
+  if(type==='product'&&!sel[type].has(val)) delete evProductSizes[val];
+  renderToggleGroups();
+}
+
+function addCustomChip(type){const inp=document.getElementById(type+'CustomInput'),val=inp.value.trim();if(!val)return;if(!custom[type].includes(val))custom[type].push(val);inp.value='';renderCustomChips(type);}
+function removeCustomChip(type,val){custom[type]=custom[type].filter(x=>x!==val);renderCustomChips(type);}
+function renderCustomChips(type){document.getElementById(type+'CustomChips').innerHTML=custom[type].map(v=>`<div class="chip">${v}<span class="chip-x" onclick="removeCustomChip('${type}','${escQ(v)}')">×</span></div>`).join('');}
+
+// ── MAIN MODAL ──
+function openModal(ev,date,startMin){
+  editId=ev?ev.id:null;
+  document.getElementById('modalTitle').textContent=ev?'Edit Event':'New Event';
+  document.getElementById('evTitle').value=ev?ev.title:'';
+  document.getElementById('evDate').value=ev?ev.date:(date||fmt(currentDate));
+  document.getElementById('evStart').value=ev?ev.start:minToTime(startMin!=null?startMin:9*60);
+  document.getElementById('evEnd').value=ev?ev.end:minToTime(startMin!=null?startMin+60:10*60);
+  document.getElementById('evNote').value=ev?.note||'';
+  selColor=ev?Math.max(0,COLORS.indexOf(ev.color||'c0')):0;
+  sel.model=new Set(ev?.models||[]);sel.product=new Set(ev?.products||[]);sel.location=new Set(ev?.locations||[]);
+  evProductSizes=ev?.productSizes||{};
+  custom.model=[];custom.product=[];custom.location=[];
+  ['model','product','location'].forEach(t=>{renderCustomChips(t);document.getElementById(t+'CustomInput').value='';});
+  renderToggleGroups();renderColorSwatches();
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('evTitle').focus();
+}
+function renderColorSwatches(){
+  const row=document.getElementById('colorRow');row.innerHTML='';
+  COLORS.forEach((c,i)=>{const sw=document.createElement('div');sw.className='cswatch'+(i===selColor?' active':'');sw.style.background=COLOR_BG[i];sw.style.borderColor=i===selColor?'#555':'transparent';sw.onclick=()=>{selColor=i;renderColorSwatches();};row.appendChild(sw);});
+}
+function closeModal(){document.getElementById('overlay').classList.remove('show');}
+document.getElementById('cancelBtn').onclick=closeModal;
+document.getElementById('overlay').addEventListener('click',e=>{if(e.target===document.getElementById('overlay'))closeModal();});
+document.getElementById('saveBtn').onclick=()=>{
+  const title=document.getElementById('evTitle').value.trim(),date=document.getElementById('evDate').value;
+  const start=document.getElementById('evStart').value,end=document.getElementById('evEnd').value;
+  const note=document.getElementById('evNote').value.trim();
+  if(!title||!date||!start||!end)return;
+  const models=[...sel.model,...custom.model.filter(x=>!sel.model.has(x))];
+  const products=[...sel.product,...custom.product.filter(x=>!sel.product.has(x))];
+  const locations=[...sel.location,...custom.location.filter(x=>!sel.location.has(x))];
+  const ev={id:editId||Date.now(),title,date,start,end,note,color:COLORS[selColor],models,products,locations,productSizes:{...evProductSizes}};
+  if(editId){const i=data.events.findIndex(x=>x.id===editId);if(i>=0)data.events[i]=ev;}
+  else data.events.push(ev);
+  save();renderAll();closeModal();
+};
+document.getElementById('openAdd').onclick=()=>openModal(null);
+
+// ── INIT ──
+loadFromCloud();
+</script>
+</body>
+</html>
