@@ -605,8 +605,15 @@ function placeEvents(dayEvs,col){
   });
 }
 
-function colMouseDown(e){if(e.target!==e.currentTarget)return;const rect=e.currentTarget.getBoundingClientRect();openModal(null,fmt(currentDate),snapMin((e.clientY-rect.top)/PX_PER_MIN));}
-function colTouchEnd(e){if(e.target!==e.currentTarget)return;const rect=e.currentTarget.getBoundingClientRect();const t=e.changedTouches[0];openModal(null,fmt(currentDate),snapMin((t.clientY-rect.top)/PX_PER_MIN));}
+function colMouseDown(e){
+  if(e.target!==e.currentTarget)return;
+  if(isMobile())return; // 모바일에서는 FAB으로만 추가
+  const rect=e.currentTarget.getBoundingClientRect();
+  openModal(null,fmt(currentDate),snapMin((e.clientY-rect.top)/PX_PER_MIN));
+}
+function colTouchEnd(e){
+  // 모바일 빈공간 터치 무시
+}
 
 // ── MOUSE DRAG ──
 function startDrag(e,ev,el){
