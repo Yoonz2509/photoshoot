@@ -170,8 +170,25 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
 .prod-modal-btns button{flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none}
 
 /* ── MOBILE FAB ── */
-.fab{display:none;position:fixed;bottom:20px;right:20px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;font-size:24px;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(99,102,241,.5);z-index:90;align-items:center;justify-content:center;transition:transform .2s}
+.fab{display:none;position:fixed;bottom:80px;right:20px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;font-size:24px;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(99,102,241,.5);z-index:90;align-items:center;justify-content:center;transition:transform .2s}
 .fab:hover{transform:scale(1.08)}
+/* drag-ready highlight */
+.ev.drag-ready{transform:scale(1.03);box-shadow:0 8px 24px rgba(99,102,241,.35);z-index:20;transition:transform .15s,box-shadow .15s}
+/* detail popup */
+.detail-popup{position:fixed;left:50%;transform:translateX(-50%);bottom:90px;width:calc(100% - 32px);max-width:400px;background:var(--surface);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.18);padding:16px;z-index:180;display:none}
+.detail-popup.show{display:block;animation:popUp .2s ease}
+@keyframes popUp{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.detail-popup-title{font-size:15px;font-weight:800;margin-bottom:4px}
+.detail-popup-time{font-size:12px;color:var(--sub);margin-bottom:10px}
+.detail-popup-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
+.detail-popup-tag{font-size:11px;padding:3px 8px;border-radius:20px;background:var(--bg);color:var(--sub);font-weight:500}
+.detail-popup-btns{display:flex;gap:8px}
+.detail-popup-btns button{flex:1;padding:9px;border-radius:9px;font-size:13px;font-weight:700;border:none;cursor:pointer}
+.dp-edit{background:var(--accent);color:#fff}
+.dp-del{background:#fee2e2;color:#991b1b}
+.dp-close{background:var(--border);color:var(--sub)}
+.detail-backdrop{display:none;position:fixed;inset:0;z-index:170}
+.detail-backdrop.show{display:block}
 
 /* ── MOBILE BOTTOM NAV ── */
 .bottom-nav{display:none;background:var(--surface);border-top:1px solid var(--border);padding:8px 0 max(8px,env(safe-area-inset-bottom));flex-shrink:0}
@@ -337,6 +354,19 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
     </button>
   </div>
 </nav>
+
+<!-- Detail Popup (mobile) -->
+<div class="detail-backdrop" id="detailBackdrop" onclick="closeDetailPopup()"></div>
+<div class="detail-popup" id="detailPopup">
+  <div class="detail-popup-title" id="dpTitle"></div>
+  <div class="detail-popup-time" id="dpTime"></div>
+  <div class="detail-popup-tags" id="dpTags"></div>
+  <div class="detail-popup-btns">
+    <button class="dp-edit" onclick="dpEdit()">✏️ Edit</button>
+    <button class="dp-del" onclick="dpDelete()">🗑 Delete</button>
+    <button class="dp-close" onclick="closeDetailPopup()">✕</button>
+  </div>
+</div>
 
 <!-- Mobile FAB -->
 <button class="fab" id="fabAdd">＋</button>
@@ -550,23 +580,27 @@ function placeEvents(dayEvs,col){
       <div class="ev-time">${ev.start} – ${ev.end}</div>
       ${htPx>40?`<div class="ev-meta">${tags.map(t=>`<span class="ev-tag">${t}</span>`).join('')}</div>`:''}
       <div class="ev-resize"></div>`;
-    el.querySelector('.ev-del').addEventListener('mousedown',e=>e.stopPropagation());
-    el.querySelector('.ev-del').addEventListener('click',e=>{e.stopPropagation();deleteEv(ev.id);});
-    el.querySelector('.ev-resize').addEventListener('mousedown',e=>{e.stopPropagation();startResize(e,ev,el);});
-    // touch resize
-    el.querySelector('.ev-resize').addEventListener('touchstart',e=>{e.stopPropagation();startTouchResize(e,ev,el);},{passive:false});
     el.addEventListener('mousedown',e=>{if(e.target.classList.contains('ev-resize')||e.target.classList.contains('ev-del'))return;startDrag(e,ev,el);});
-    // touch drag
-    el.addEventListener('touchstart',e=>{if(e.target.classList.contains('ev-resize')||e.target.classList.contains('ev-del'))return;startTouchDrag(e,ev,el);},{passive:false});
     el.addEventListener('dblclick',e=>{e.stopPropagation();dragState=null;openModal(ev);});
-    // mobile tap to edit
-    let tapTimer=null;
-    el.addEventListener('touchend',e=>{
-      if(dragState)return;
+    // MOBILE: tap = detail popup, long press = drag
+    el.addEventListener('touchstart',e=>{
+      if(e.target.classList.contains('ev-resize')||e.target.classList.contains('ev-del'))return;
       e.stopPropagation();
-      if(tapTimer){clearTimeout(tapTimer);tapTimer=null;openModal(ev);}
-      else{tapTimer=setTimeout(()=>{tapTimer=null;},300);}
-    });
+      let longPressed=false;
+      const lpt=setTimeout(()=>{
+        longPressed=true;
+        el.classList.add('drag-ready');
+        if(navigator.vibrate)navigator.vibrate(40);
+        startTouchDrag(e,ev,el,()=>el.classList.remove('drag-ready'));
+      },400);
+      el.addEventListener('touchend',()=>{
+        clearTimeout(lpt);
+        if(!longPressed){el.classList.remove('drag-ready');openDetailPopup(ev);}
+      },{once:true});
+      el.addEventListener('touchmove',()=>{clearTimeout(lpt);},{once:true,passive:true});
+    },{passive:true});
+    // touch resize handle
+    el.querySelector('.ev-resize').addEventListener('touchstart',e=>{e.stopPropagation();startTouchResize(e,ev,el);},{passive:false});
     col.appendChild(el);
   });
 }
@@ -590,32 +624,30 @@ function onDragMove(e){if(!dragState)return;const{el,offsetY,durMin,rect}=dragSt
 function onDragEnd(e){if(!dragState)return;const{ev,offsetY,durMin,rect}=dragState;const snapped=Math.max(0,Math.min(1439-durMin,snapMin((e.clientY-rect.top-offsetY)/PX_PER_MIN)));const idx=data.events.findIndex(x=>x.id===ev.id);if(idx>=0){data.events[idx].start=minToTime(snapped);data.events[idx].end=minToTime(Math.min(1440,snapped+durMin));}save();document.removeEventListener('mousemove',onDragMove);document.removeEventListener('mouseup',onDragEnd);dragState=null;hideTooltip();renderDayView();}
 
 // ── TOUCH DRAG ──
-function startTouchDrag(e,ev,el){
-  e.preventDefault();
+function startTouchDrag(e,ev,el,onEnd){
   const rect=document.getElementById('scheduleCol').getBoundingClientRect();
-  const t0=e.touches[0];const startY=t0.clientY;let moved=false;
+  const t0=e.touches[0];const startY=t0.clientY;
   let offsetY=startY-(rect.top+timeToMin(ev.start)*PX_PER_MIN);
+  el.classList.add('dragging');showTooltip(ev.start,ev.end);
   function onMove(e2){
+    e2.preventDefault();
     const t=e2.touches[0];
-    if(!moved&&Math.abs(t.clientY-startY)>8){moved=true;el.classList.add('dragging');showTooltip(ev.start,ev.end);}
-    if(!moved)return;
     const snapped=Math.max(0,Math.min(1439-(timeToMin(ev.end)-timeToMin(ev.start)),snapMin((t.clientY-rect.top-offsetY)/PX_PER_MIN)));
     el.style.top=(snapped*PX_PER_MIN)+'px';
     updateTooltip(minToTime(snapped),minToTime(snapped+(timeToMin(ev.end)-timeToMin(ev.start))));
     tooltip.style.left=(t.clientX+14)+'px';tooltip.style.top=(t.clientY-40)+'px';
   }
-  function onEnd(e2){
-    el.removeEventListener('touchmove',onMove);el.removeEventListener('touchend',onEnd);
-    if(!moved){hideTooltip();return;}
+  function onEndTouch(e2){
+    el.removeEventListener('touchmove',onMove);el.removeEventListener('touchend',onEndTouch);
     const t=e2.changedTouches[0];
     const durMin=timeToMin(ev.end)-timeToMin(ev.start);
     const snapped=Math.max(0,Math.min(1439-durMin,snapMin((t.clientY-rect.top-offsetY)/PX_PER_MIN)));
     const idx=data.events.findIndex(x=>x.id===ev.id);
     if(idx>=0){data.events[idx].start=minToTime(snapped);data.events[idx].end=minToTime(Math.min(1440,snapped+durMin));}
-    save();hideTooltip();el.classList.remove('dragging');renderDayView();
+    save();hideTooltip();el.classList.remove('dragging');if(onEnd)onEnd();renderDayView();
   }
   el.addEventListener('touchmove',onMove,{passive:false});
-  el.addEventListener('touchend',onEnd);
+  el.addEventListener('touchend',onEndTouch);
 }
 
 // ── TOUCH RESIZE ──
