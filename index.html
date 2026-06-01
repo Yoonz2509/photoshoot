@@ -1,1727 +1,881 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Size Chart Dashboard</title>
-  <style>
-    :root {
-      --bg: #f6f7f9;
-      --panel: #ffffff;
-      --ink: #20242c;
-      --muted: #667085;
-      --line: #d9dee7;
-      --soft: #eef1f5;
-      --green: #16794a;
-      --green-bg: #e7f6ee;
-      --amber: #a05a00;
-      --amber-bg: #fff2d9;
-      --blue: #185abc;
-      --blue-bg: #e8f0fe;
-      --red: #b42318;
-      --red-bg: #fee4e2;
-      --gray: #475467;
-      --gray-bg: #eef1f5;
-      --shadow: 0 18px 45px rgba(31, 41, 55, 0.08);
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--ink);
-      font-family: Arial, sans-serif;
-    }
-
-    button,
-    input,
-    select,
-    textarea {
-      font: inherit;
-    }
-
-    a {
-      color: inherit;
-    }
-
-    .topbar {
-      position: sticky;
-      top: 0;
-      z-index: 20;
-      background: rgba(246, 247, 249, 0.94);
-      border-bottom: 1px solid var(--line);
-      backdrop-filter: blur(12px);
-    }
-
-    .topbar-inner,
-    .content {
-      max-width: 1480px;
-      margin: 0 auto;
-      padding: 18px 24px;
-    }
-
-    .topbar-inner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 18px;
-    }
-
-    h1 {
-      margin: 0;
-      font-size: 22px;
-      line-height: 1.2;
-      letter-spacing: 0;
-    }
-
-    .brand p {
-      margin: 6px 0 0;
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    .toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .search {
-      width: min(340px, 42vw);
-      min-width: 210px;
-    }
-
-    .field,
-    .search,
-    .select,
-    .button {
-      min-height: 40px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: #fff;
-      color: var(--ink);
-      padding: 0 12px;
-    }
-
-    .button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      cursor: pointer;
-      font-weight: 700;
-      white-space: nowrap;
-    }
-
-    .button.primary {
-      border-color: #1f2937;
-      background: #1f2937;
-      color: #fff;
-    }
-
-    .button.danger {
-      border-color: #fecdca;
-      background: var(--red-bg);
-      color: var(--red);
-    }
-
-    .button:disabled {
-      cursor: not-allowed;
-      opacity: 0.45;
-    }
-
-    .icon-action {
-      width: 40px;
-      min-width: 40px;
-      padding: 0;
-      font-size: 20px;
-      line-height: 1;
-    }
-
-    .save-status {
-      display: inline-flex;
-      align-items: center;
-      min-height: 30px;
-      color: var(--muted);
-      font-size: 12px;
-      white-space: nowrap;
-    }
-
-    .content {
-      padding-top: 22px;
-      padding-bottom: 42px;
-    }
-
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(6, minmax(130px, 1fr));
-      gap: 12px;
-      margin-bottom: 18px;
-    }
-
-    .stat {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 14px 16px;
-      box-shadow: var(--shadow);
-    }
-
-    .stat span {
-      display: block;
-      color: var(--muted);
-      font-size: 12px;
-      margin-bottom: 6px;
-    }
-
-    .stat strong {
-      display: block;
-      font-size: 24px;
-      line-height: 1.1;
-    }
-
-    .board {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      box-shadow: var(--shadow);
-      overflow: hidden;
-    }
-
-    .board-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--line);
-    }
-
-    .board-head strong {
-      font-size: 14px;
-    }
-
-    .channel-list {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      min-height: 24px;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      padding: 3px 9px;
-      background: #fff;
-    }
-
-    .pill button {
-      width: 18px;
-      height: 18px;
-      border: 0;
-      border-radius: 999px;
-      background: var(--soft);
-      cursor: pointer;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1;
-    }
-
-    .table-wrap {
-      overflow-x: auto;
-    }
-
-    table {
-      width: 100%;
-      min-width: 1180px;
-      border-collapse: collapse;
-    }
-
-    th,
-    td {
-      border-bottom: 1px solid var(--line);
-      padding: 13px 14px;
-      text-align: left;
-      vertical-align: top;
-      font-size: 14px;
-    }
-
-    th {
-      background: #fbfcfd;
-      color: #475467;
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0;
-    }
-
-    tbody tr:hover {
-      background: #fafbfc;
-    }
-
-    tbody tr {
-      position: relative;
-    }
-
-    .sku {
-      display: block;
-      min-width: 90px;
-      font-weight: 700;
-      color: #111827;
-    }
-
-    .product {
-      min-width: 210px;
-      font-weight: 700;
-    }
-
-    .sub {
-      display: block;
-      margin-top: 4px;
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 400;
-    }
-
-    .channel-cell {
-      display: grid;
-      gap: 8px;
-      min-width: 180px;
-    }
-
-    .channel-status {
-      width: 100%;
-      height: 34px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: #fff;
-      padding: 0 8px;
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .link-row {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 6px;
-    }
-
-    .url-input {
-      width: 100%;
-      min-width: 0;
-      height: 32px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      padding: 0 8px;
-      font-size: 12px;
-    }
-
-    .drive-link {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 32px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: #fff;
-      padding: 6px 9px;
-      color: #1f2937;
-      font-size: 12px;
-      font-weight: 700;
-      text-decoration: none;
-      white-space: nowrap;
-    }
-
-    .drive-link:hover {
-      border-color: #98a2b3;
-      background: var(--soft);
-    }
-
-    .drive-link.disabled {
-      pointer-events: none;
-      opacity: 0.45;
-    }
-
-    .status {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: fit-content;
-      min-width: 82px;
-      min-height: 26px;
-      border-radius: 999px;
-      padding: 4px 10px;
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .status.not_started {
-      background: var(--gray-bg);
-      color: var(--gray);
-    }
-
-    .status.in_progress {
-      background: var(--amber-bg);
-      color: var(--amber);
-    }
-
-    .status.work_complete {
-      background: var(--blue-bg);
-      color: var(--blue);
-    }
-
-    .status.review_complete {
-      background: var(--green-bg);
-      color: var(--green);
-    }
-
-    .status.complete {
-      background: var(--green-bg);
-      color: var(--green);
-    }
-
-    .status.rejected {
-      background: var(--red-bg);
-      color: var(--red);
-    }
-
-    .note-preview {
-      max-width: 260px;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.35;
-    }
-
-    .row-actions {
-      display: grid;
-      gap: 8px;
-      justify-items: stretch;
-      min-width: 118px;
-    }
-
-    .small-button {
-      min-height: 34px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: #fff;
-      cursor: pointer;
-      padding: 0 10px;
-      font-size: 12px;
-      font-weight: 700;
-      color: #1f2937;
-    }
-
-    .small-button.danger {
-      border-color: #fecdca;
-      background: var(--red-bg);
-      color: var(--red);
-    }
-
-    .row-delete-button {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      z-index: 5;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      border: 1px solid #fecdca;
-      border-radius: 999px;
-      background: #fff;
-      color: var(--red);
-      cursor: pointer;
-      font-size: 16px;
-      font-weight: 700;
-      line-height: 1;
-      box-shadow: 0 10px 22px rgba(31, 41, 55, 0.12);
-    }
-
-    tbody tr:hover .row-delete-button,
-    tbody tr:focus-within .row-delete-button {
-      display: inline-flex;
-    }
-
-    .empty {
-      padding: 34px;
-      text-align: center;
-      color: var(--muted);
-    }
-
-    .modal {
-      width: min(720px, calc(100vw - 28px));
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 0;
-      background: #fff;
-      box-shadow: 0 35px 90px rgba(16, 24, 40, 0.28);
-      display: block;
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      z-index: 50;
-      max-height: calc(100vh - 32px);
-      margin: 0;
-      overflow: auto;
-      transform: translate(-50%, -50%);
-    }
-
-    .modal[hidden] {
-      display: none;
-    }
-
-    body.modal-open::before {
-      position: fixed;
-      inset: 0;
-      z-index: 40;
-      background: rgba(15, 23, 42, 0.38);
-      content: "";
-    }
-
-    .modal-head,
-    .modal-foot {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 16px 18px;
-      border-bottom: 1px solid var(--line);
-    }
-
-    .modal-foot {
-      border-top: 1px solid var(--line);
-      border-bottom: 0;
-      justify-content: flex-end;
-    }
-
-    .modal-title {
-      margin: 0;
-      font-size: 18px;
-    }
-
-    .modal-body {
-      padding: 18px;
-    }
-
-    .icon-button {
-      width: 36px;
-      height: 36px;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: #fff;
-      cursor: pointer;
-      color: #1f2937;
-      font-size: 18px;
-      line-height: 1;
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    .form-grid label,
-    .channel-form label,
-    .note-form label {
-      display: grid;
-      gap: 6px;
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .full {
-      grid-column: 1 / -1;
-    }
-
-    .channel-form {
-      display: grid;
-      gap: 12px;
-      margin-top: 14px;
-    }
-
-    .channel-form h3 {
-      margin: 4px 0 0;
-      font-size: 14px;
-    }
-
-    .channel-editor {
-      display: grid;
-      grid-template-columns: 160px 160px 1fr;
-      gap: 10px;
-      align-items: end;
-      padding: 12px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: #fbfcfd;
-    }
-
-    .check-list {
-      display: grid;
-      gap: 10px;
-    }
-
-    .check-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      min-height: 42px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 9px 12px;
-      background: #fbfcfd;
-      color: var(--ink);
-      font-size: 14px;
-      font-weight: 700;
-    }
-
-    .check-row input {
-      width: 18px;
-      height: 18px;
-    }
-
-    textarea {
-      width: 100%;
-      min-height: 96px;
-      resize: vertical;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      padding: 10px 12px;
-    }
-
-    .note-form {
-      display: grid;
-      gap: 10px;
-      margin-bottom: 18px;
-    }
-
-    .note-meta {
-      display: grid;
-      grid-template-columns: 1fr 160px;
-      gap: 10px;
-    }
-
-    .history {
-      display: grid;
-      gap: 10px;
-      max-height: 340px;
-      overflow: auto;
-      padding-right: 4px;
-    }
-
-    .history-item {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 12px;
-      background: #fbfcfd;
-    }
-
-    .history-item.done-item {
-      border-color: #b7e4ca;
-      background: #f3fbf7;
-    }
-
-    .history-item strong {
-      display: block;
-      margin-bottom: 5px;
-      font-size: 13px;
-    }
-
-    .history-item p {
-      margin: 0;
-      color: #344054;
-      font-size: 13px;
-      line-height: 1.45;
-      white-space: pre-wrap;
-    }
-
-    .history-item time {
-      display: block;
-      margin-top: 8px;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    @media (max-width: 980px) {
-      .topbar-inner {
-        align-items: flex-start;
-        flex-direction: column;
-      }
-
-      .toolbar,
-      .search {
-        width: 100%;
-      }
-
-      .stats {
-        grid-template-columns: repeat(2, minmax(140px, 1fr));
-      }
-
-      .channel-editor,
-      .form-grid,
-      .note-meta {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    @media (max-width: 560px) {
-      .content,
-      .topbar-inner {
-        padding-left: 14px;
-        padding-right: 14px;
-      }
-
-      .stats {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shoot Schedule</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f7f8fa;--surface:#fff;--border:#e8eaed;
+  --text:#1a1a2e;--sub:#6b7280;--accent:#6366f1;
+  --shadow:0 2px 14px rgba(0,0,0,.07);--radius:12px;
+  --header-h:56px;--tabs-h:42px;
+}
+body{font-family:'Segoe UI',-apple-system,sans-serif;background:var(--bg);color:var(--text);height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+
+/* ── HEADER ── */
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;height:var(--header-h);display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow);z-index:100;flex-shrink:0;gap:10px}
+.logo{font-size:15px;font-weight:800;color:var(--accent);letter-spacing:-.5px;white-space:nowrap}
+.date-nav{display:flex;align-items:center;gap:6px}
+.date-nav button{background:none;border:1px solid var(--border);border-radius:8px;padding:5px 10px;cursor:pointer;font-size:13px;color:var(--sub);transition:all .2s}
+.date-nav button:hover{border-color:var(--accent);color:var(--accent)}
+.date-label{font-size:13px;font-weight:700;min-width:140px;text-align:center}
+.header-right{display:flex;align-items:center;gap:8px}
+.sync-status{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap}
+.sync-status.saved{background:#d1fae5;color:#065f46}
+.sync-status.saving{background:#fef3c7;color:#92400e}
+.sync-status.error{background:#fee2e2;color:#991b1b}
+.btn{border:none;border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-accent{background:var(--accent);color:#fff}
+.btn:hover{opacity:.82}
+
+/* ── TABS ── */
+.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;height:var(--tabs-h)}
+.tab{flex:1;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--sub);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
+.tab.active{color:var(--accent);border-color:var(--accent)}
+
+/* ── MAIN ── */
+.main{flex:1;overflow:hidden;display:flex}
+
+/* ── DAY VIEW (desktop) ── */
+.day-wrap{flex:1;display:flex;overflow:hidden}
+.day-view{flex:1;overflow-y:auto;padding:16px 12px 20px 16px;display:flex;gap:12px}
+.time-axis{width:50px;flex-shrink:0;position:relative}
+.time-tick{position:absolute;right:8px;font-size:10px;color:var(--sub);font-weight:500;transform:translateY(-50%);white-space:nowrap;pointer-events:none}
+.schedule-col{flex:1;position:relative;border-left:1px solid var(--border)}
+.grid-line{position:absolute;left:0;right:0;border-top:1px solid var(--border);pointer-events:none}
+.grid-line.minor{border-top:1px dashed #f0f0f0}
+.now-line{position:absolute;left:0;right:0;height:2px;background:#ef4444;z-index:15;pointer-events:none}
+.now-line::before{content:'';position:absolute;left:-5px;top:-4px;width:10px;height:10px;border-radius:50%;background:#ef4444}
+
+/* ── EVENTS ── */
+.ev{position:absolute;left:4px;right:4px;border-radius:8px;padding:6px 9px;font-size:12px;cursor:pointer;z-index:5;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden;user-select:none;transition:box-shadow .15s}
+.ev:hover{box-shadow:0 5px 16px rgba(0,0,0,.16)}
+.ev.dragging{opacity:.75;z-index:50;cursor:grabbing}
+.ev-title{font-weight:700;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev-time{font-size:10px;opacity:.75;margin-top:1px}
+.ev-meta{margin-top:3px;display:flex;flex-direction:column;gap:2px}
+.ev-tag{display:inline-flex;align-items:center;gap:2px;font-size:10px;font-weight:500;padding:1px 5px;border-radius:20px;background:rgba(255,255,255,.55);width:fit-content;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ev-del{position:absolute;top:4px;right:6px;font-size:14px;cursor:pointer;opacity:0;transition:opacity .15s;background:rgba(255,255,255,.65);border-radius:50%;width:17px;height:17px;display:flex;align-items:center;justify-content:center;line-height:1;z-index:10}
+.ev:hover .ev-del{opacity:1}
+.ev-resize{position:absolute;bottom:0;left:0;right:0;height:8px;cursor:s-resize;z-index:10;display:flex;align-items:center;justify-content:center}
+.ev-resize::after{content:'';width:24px;height:2px;border-radius:2px;background:rgba(0,0,0,.2)}
+.c0{background:#e0e7ff;color:#3730a3}.c1{background:#fce7f3;color:#9d174d}
+.c2{background:#d1fae5;color:#065f46}.c3{background:#fef3c7;color:#92400e}
+.c4{background:#fee2e2;color:#991b1b}.c5{background:#e0f2fe;color:#075985}
+.c6{background:#f3e8ff;color:#6b21a8}
+
+/* ── SIDEBAR ── */
+.sidebar{width:270px;flex-shrink:0;border-left:1px solid var(--border);background:var(--surface);overflow-y:auto;padding:14px 13px}
+.sidebar-section{margin-bottom:16px}
+.sidebar-section h4{font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between}
+.sidebar-section h4 span{font-size:10px;color:var(--accent);cursor:pointer;font-weight:600;text-transform:none;letter-spacing:0}
+.sidebar-section h4 span:hover{text-decoration:underline}
+.btn-grid{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px}
+.tag-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;border:1.5px solid var(--border);background:var(--bg);font-size:11px;font-weight:600;cursor:default;color:var(--text);white-space:nowrap}
+.tag-btn .tb-del{font-size:13px;line-height:1;color:#bbb;margin-left:2px;cursor:pointer}
+.tag-btn .tb-del:hover{color:#ef4444}
+.size-badge{display:inline-flex;align-items:center;background:var(--accent);color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:10px;margin-left:2px}
+.size-badge.empty{background:#d1d5db;color:#6b7280}
+.product-name-click{cursor:pointer}
+.product-name-click:hover{color:var(--accent);text-decoration:underline}
+.add-inline{display:flex;gap:5px;margin-top:3px}
+.add-inline input{flex:1;border:1px solid var(--border);border-radius:7px;padding:5px 9px;font-size:12px;outline:none}
+.add-inline input:focus{border-color:var(--accent)}
+.add-inline button{background:var(--accent);color:#fff;border:none;border-radius:7px;padding:5px 10px;font-size:12px;cursor:pointer;font-weight:700}
+.mini-cal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.mini-cal-header button{background:none;border:none;cursor:pointer;color:var(--sub);font-size:16px;padding:1px 3px}
+.mini-cal-header span{font-size:12px;font-weight:700}
+.mini-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.mini-day-name{font-size:10px;color:var(--sub);text-align:center;font-weight:600;padding:2px 0}
+.mini-day{font-size:11px;text-align:center;padding:4px 1px;border-radius:5px;cursor:pointer;font-weight:500;position:relative}
+.mini-day:hover{background:var(--bg)}
+.mini-day.selected{background:var(--accent);color:#fff}
+.mini-day.today{font-weight:800;color:var(--accent)}
+.mini-day.today.selected{color:#fff}
+.mini-day.has-ev::after{content:'';position:absolute;bottom:1px;left:50%;transform:translateX(-50%);width:3px;height:3px;border-radius:50%;background:var(--accent)}
+.mini-day.has-ev.selected::after{background:#fff}
+
+/* ── LIST VIEW ── */
+.list-view{flex:1;overflow-y:auto;padding:16px}
+.list-date-group{margin-bottom:20px}
+.list-date-header{font-size:12px;font-weight:700;color:var(--sub);margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+.list-item{background:var(--surface);border-radius:10px;padding:11px 14px;margin-bottom:7px;box-shadow:var(--shadow);display:flex;align-items:flex-start;gap:10px;cursor:pointer;transition:box-shadow .15s}
+.list-item:hover{box-shadow:0 4px 18px rgba(0,0,0,.12)}
+.list-color{width:4px;border-radius:2px;flex-shrink:0;align-self:stretch;min-height:36px}
+.list-info{flex:1;min-width:0}
+.list-title{font-weight:700;font-size:13px}
+.list-time{font-size:11px;color:var(--sub);margin-top:2px}
+.list-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.list-tag{font-size:11px;padding:2px 7px;border-radius:20px;background:var(--bg);color:var(--sub);font-weight:500}
+.list-del{color:#ccc;cursor:pointer;font-size:17px;flex-shrink:0;line-height:1;padding:2px}
+.list-del:hover{color:#ef4444}
+.empty{text-align:center;color:var(--sub);padding:60px 0;font-size:14px}
+
+/* ── MOBILE SIDEBAR TAB ── */
+.mobile-sidebar{flex:1;overflow-y:auto;padding:14px}
+
+/* ── DRAG TOOLTIP ── */
+.drag-tooltip{position:fixed;background:rgba(30,30,50,.85);color:#fff;font-size:11px;font-weight:700;padding:4px 9px;border-radius:6px;pointer-events:none;z-index:999;display:none}
+
+/* ── LOADING ── */
+.loading-screen{position:fixed;inset:0;background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:500;gap:14px}
+.loading-spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-screen p{font-size:14px;color:var(--sub);font-weight:600}
+
+/* ── MODAL ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.32);z-index:200;align-items:center;justify-content:center;padding:12px}
+.overlay.show{display:flex}
+.modal{background:var(--surface);border-radius:var(--radius);padding:20px;width:100%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,.18);max-height:90dvh;overflow-y:auto}
+.modal h3{font-size:15px;font-weight:800;margin-bottom:14px}
+.field{margin-bottom:11px}
+.field label{font-size:10px;font-weight:700;color:var(--sub);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.field input,.field textarea{width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 11px;font-size:14px;outline:none;transition:border .2s;font-family:inherit}
+.field input:focus,.field textarea:focus{border-color:var(--accent)}
+.field textarea{resize:vertical;min-height:48px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.color-row{display:flex;gap:6px;flex-wrap:wrap}
+.cswatch{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s}
+.cswatch.active{transform:scale(1.25)}
+.toggle-group{display:flex;flex-wrap:wrap;gap:5px}
+.prod-toggle-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:1.5px solid var(--border);background:var(--bg);font-size:12px;font-weight:600;cursor:pointer;transition:all .18s;color:var(--sub)}
+.prod-toggle-btn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.toggle-btn{padding:5px 12px;border-radius:20px;border:1.5px solid var(--border);background:var(--bg);font-size:12px;font-weight:600;cursor:pointer;transition:all .18s;color:var(--sub)}
+.toggle-btn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.or-divider{font-size:10px;color:var(--sub);margin:5px 0 3px}
+.chip-row{display:flex;gap:5px;margin-top:4px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:3px;background:var(--accent);color:#fff;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:600}
+.chip-x{cursor:pointer;opacity:.7;font-size:12px;line-height:1}
+.chip-add-row{display:flex;gap:5px;margin-top:5px}
+.chip-add-row input{flex:1;border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;outline:none}
+.chip-add-row input:focus{border-color:var(--accent)}
+.chip-add-row button{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 10px;font-size:12px;cursor:pointer;font-weight:700}
+.modal-btns{display:flex;gap:8px;margin-top:14px}
+.modal-btns button{flex:1;padding:10px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none}
+.mcancel{background:var(--border);color:var(--sub)}.msave{background:var(--accent);color:#fff}
+
+/* PRODUCT SIZE MODAL */
+.prod-modal{background:var(--surface);border-radius:var(--radius);padding:20px;width:100%;max-width:340px;box-shadow:0 20px 60px rgba(0,0,0,.18);max-height:90dvh;overflow-y:auto}
+.prod-modal h3{font-size:14px;font-weight:800;margin-bottom:12px}
+.size-grid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.size-chip{padding:6px 14px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg);font-size:12px;font-weight:700;cursor:pointer;color:var(--sub)}
+.size-chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.custom-size-row{display:flex;gap:6px;margin-bottom:12px}
+.custom-size-row input{flex:1;border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;outline:none}
+.custom-size-row input:focus{border-color:var(--accent)}
+.custom-size-row button{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 11px;font-size:12px;cursor:pointer;font-weight:700}
+.prod-modal-btns{display:flex;gap:8px}
+.prod-modal-btns button{flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none}
+
+/* ── MOBILE FAB ── */
+.fab{display:none;position:fixed;bottom:80px;right:20px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;font-size:24px;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(99,102,241,.5);z-index:90;align-items:center;justify-content:center;transition:transform .2s}
+.fab:hover{transform:scale(1.08)}
+/* drag-ready highlight */
+.ev.drag-ready{transform:scale(1.03);box-shadow:0 8px 24px rgba(99,102,241,.35);z-index:20;transition:transform .15s,box-shadow .15s}
+/* detail popup */
+.detail-popup{position:fixed;left:50%;transform:translateX(-50%);bottom:90px;width:calc(100% - 32px);max-width:400px;background:var(--surface);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.18);padding:16px;z-index:180;display:none}
+.detail-popup.show{display:block;animation:popUp .2s ease}
+@keyframes popUp{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.detail-popup-title{font-size:15px;font-weight:800;margin-bottom:4px}
+.detail-popup-time{font-size:12px;color:var(--sub);margin-bottom:10px}
+.detail-popup-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
+.detail-popup-tag{font-size:11px;padding:3px 8px;border-radius:20px;background:var(--bg);color:var(--sub);font-weight:500}
+.detail-popup-btns{display:flex;gap:8px}
+.detail-popup-btns button{flex:1;padding:9px;border-radius:9px;font-size:13px;font-weight:700;border:none;cursor:pointer}
+.dp-edit{background:var(--accent);color:#fff}
+.dp-del{background:#fee2e2;color:#991b1b}
+.dp-close{background:var(--border);color:var(--sub)}
+.detail-backdrop{display:none;position:fixed;inset:0;z-index:170}
+.detail-backdrop.show{display:block}
+
+/* ── MOBILE BOTTOM NAV ── */
+.bottom-nav{display:none;background:var(--surface);border-top:1px solid var(--border);padding:8px 0 max(8px,env(safe-area-inset-bottom));flex-shrink:0}
+.bottom-nav-inner{display:flex;justify-content:space-around}
+.bnav-btn{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;padding:4px 16px;color:var(--sub);font-size:10px;font-weight:600;transition:color .2s}
+.bnav-btn.active{color:var(--accent)}
+.bnav-icon{font-size:20px;line-height:1}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  /* hide desktop sidebar & header add btn */
+  .sidebar{display:none}
+  .desktop-add-btn{display:none}
+  /* show mobile elements */
+  .fab{display:flex}
+  .bottom-nav{display:block}
+  /* tabs hidden on mobile (use bottom nav) */
+  .tabs{display:none}
+  /* date nav compact */
+  .date-label{min-width:110px;font-size:12px}
+  /* day view full width */
+  .day-view{padding:12px 8px 80px 12px}
+}
+@media(min-width:769px){
+  .bottom-nav{display:none}
+  .fab{display:none}
+  .desktop-add-btn{display:flex}
+}
+</style>
 </head>
 <body>
-  <div class="shell">
-    <header class="topbar">
-      <div class="topbar-inner">
-        <div class="brand">
-          <h1>Size Chart Dashboard</h1>
-          <p>Track size chart progress by SKU, channel, Drive link, and manager notes.</p>
-        </div>
-        <div class="toolbar">
-          <input id="searchInput" class="search" type="search" placeholder="Search SKU or product name" />
-          <select id="statusFilter" class="select" aria-label="Status filter">
-            <option value="all">All Statuses</option>
-          </select>
-          <button id="sortButton" class="button" type="button">Sort</button>
-          <button id="resetButton" class="button" type="button">Reset</button>
-          <button id="saveButton" class="button" type="button">Save</button>
-          <span id="saveStatus" class="save-status">Auto save ready</span>
-          <button id="undoButton" class="button icon-action" type="button" title="Undo" aria-label="Undo" disabled>↶</button>
-          <button id="redoButton" class="button icon-action" type="button" title="Redo" aria-label="Redo" disabled>↷</button>
-          <button id="channelViewButton" class="button" type="button">Channels</button>
-          <button id="addChannelButton" class="button" type="button">Add Website</button>
-          <button id="addProductButton" class="button primary" type="button">Add Product</button>
+
+<div class="loading-screen" id="loadingScreen">
+  <div class="loading-spinner"></div>
+  <p>Loading schedule...</p>
+</div>
+
+<header>
+  <div class="logo">📸 Shoot</div>
+  <div class="date-nav">
+    <button id="prevDay">‹</button>
+    <div class="date-label" id="dateLabel"></div>
+    <button id="nextDay">›</button>
+    <button class="btn" style="background:var(--border);color:var(--sub);padding:5px 10px" id="todayBtn">Today</button>
+  </div>
+  <div class="header-right">
+    <div class="sync-status saved" id="syncStatus">✓ Saved</div>
+    <button class="btn btn-accent desktop-add-btn" id="openAdd">+ Add</button>
+  </div>
+</header>
+
+<!-- Desktop tabs -->
+<div class="tabs" id="desktopTabs">
+  <div class="tab active" id="tab-day" onclick="switchTab('day')">Day View</div>
+  <div class="tab" id="tab-list" onclick="switchTab('list')">All Events</div>
+  <div class="tab" id="tab-manage" onclick="switchTab('manage')">Models & Products</div>
+</div>
+
+<div class="main" id="mainArea">
+
+  <!-- DAY VIEW -->
+  <div id="view-day" class="day-wrap">
+    <div class="day-view" id="dayView">
+      <div class="time-axis" id="timeAxis"></div>
+      <div class="schedule-col" id="scheduleCol"></div>
+    </div>
+    <!-- Desktop sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-section">
+        <h4>Calendar</h4>
+        <div id="miniCal"></div>
+      </div>
+      <div class="sidebar-section">
+        <h4>Models <span onclick="focusAdd('model')">+ Add</span></h4>
+        <div class="btn-grid" id="modelBtnGrid"></div>
+        <div class="add-inline" id="modelAddRow" style="display:none">
+          <input id="modelAddInput" placeholder="Model name" onkeydown="if(event.key==='Enter')commitAdd('model')">
+          <button onclick="commitAdd('model')">Add</button>
         </div>
       </div>
-    </header>
-
-    <main class="content">
-      <section class="stats" aria-label="Summary">
-        <div class="stat">
-          <span>Total SKUs</span>
-          <strong id="totalCount">0</strong>
+      <div class="sidebar-section">
+        <h4>Products <span onclick="focusAdd('product')">+ Add</span></h4>
+        <div class="btn-grid" id="productBtnGrid"></div>
+        <div class="add-inline" id="productAddRow" style="display:none">
+          <input id="productAddInput" placeholder="Product name" onkeydown="if(event.key==='Enter')commitAdd('product')">
+          <button onclick="commitAdd('product')">Add</button>
         </div>
-        <div class="stat">
-          <span>Not Started</span>
-          <strong id="notStartedCount">0</strong>
+      </div>
+      <div class="sidebar-section">
+        <h4>Locations <span onclick="focusAdd('location')">+ Add</span></h4>
+        <div class="btn-grid" id="locationBtnGrid"></div>
+        <div class="add-inline" id="locationAddRow" style="display:none">
+          <input id="locationAddInput" placeholder="Location name" onkeydown="if(event.key==='Enter')commitAdd('location')">
+          <button onclick="commitAdd('location')">Add</button>
         </div>
-        <div class="stat">
-          <span>In Progress</span>
-          <strong id="inProgressCount">0</strong>
-        </div>
-        <div class="stat">
-          <span>Complete</span>
-          <strong id="reviewCompleteCount">0</strong>
-        </div>
-        <div class="stat">
-          <span>Rejected</span>
-          <strong id="rejectedCount">0</strong>
-        </div>
-        <div class="stat">
-          <span>Open Notes</span>
-          <strong id="openNotes">0</strong>
-        </div>
-      </section>
-
-      <section class="board">
-        <div class="board-head">
-          <strong>Product Tracker</strong>
-          <div id="channelList" class="channel-list"></div>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr id="tableHead"></tr>
-            </thead>
-            <tbody id="productRows"></tbody>
-          </table>
-        </div>
-        <div id="emptyState" class="empty" hidden>No products match the current filters.</div>
-      </section>
-    </main>
-  </div>
-
-  <div id="productDialog" class="modal" role="dialog" aria-modal="true" hidden>
-    <div class="modal-head">
-      <h2 id="productModalTitle" class="modal-title">Add Product</h2>
-      <button class="icon-button" type="button" data-close-dialog="productDialog">&times;</button>
-    </div>
-    <div class="modal-body">
-      <form id="productForm">
-        <div class="form-grid">
-          <label>
-            SKU
-            <input id="productSku" class="field" required />
-          </label>
-          <label>
-            Product Name
-            <input id="productName" class="field" required />
-          </label>
-          <label class="full">
-            Category / Line
-            <input id="productCategory" class="field" placeholder="Optional" />
-          </label>
-        </div>
-        <div class="channel-form">
-          <h3>Website Links and Statuses</h3>
-          <div id="productChannelFields"></div>
-        </div>
-      </form>
-    </div>
-    <div class="modal-foot">
-      <button class="button" type="button" data-close-dialog="productDialog">Cancel</button>
-      <button id="saveProductButton" class="button primary" type="button">Save Product</button>
-    </div>
-  </div>
-
-  <div id="channelDialog" class="modal" role="dialog" aria-modal="true" hidden>
-    <div class="modal-head">
-      <h2 class="modal-title">Add Website</h2>
-      <button class="icon-button" type="button" data-close-dialog="channelDialog">&times;</button>
-    </div>
-    <div class="modal-body">
-      <label>
-        Website / Channel Name
-        <input id="channelNameInput" class="field" placeholder="Example: Walmart, Target, Petco" />
-      </label>
-    </div>
-    <div class="modal-foot">
-      <button class="button" type="button" data-close-dialog="channelDialog">Cancel</button>
-      <button id="saveChannelButton" class="button primary" type="button">Add Website</button>
-    </div>
-  </div>
-
-  <div id="sortDialog" class="modal" role="dialog" aria-modal="true" hidden>
-    <div class="modal-head">
-      <h2 class="modal-title">Sort</h2>
-      <button class="icon-button" type="button" data-close-dialog="sortDialog">&times;</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-grid">
-        <label>
-          Sort By
-          <select id="sortKeySelect" class="select"></select>
-        </label>
-        <label>
-          Direction
-          <select id="sortDirectionSelect" class="select">
-            <option value="asc">Ascending</option>
-            <option value="desc">Descending</option>
-          </select>
-        </label>
       </div>
     </div>
-    <div class="modal-foot">
-      <button class="button" type="button" data-close-dialog="sortDialog">Cancel</button>
-      <button id="applySortButton" class="button primary" type="button">Apply Sort</button>
-    </div>
   </div>
 
-  <div id="channelViewDialog" class="modal" role="dialog" aria-modal="true" hidden>
-    <div class="modal-head">
-      <h2 class="modal-title">Visible Channels</h2>
-      <button class="icon-button" type="button" data-close-dialog="channelViewDialog">&times;</button>
-    </div>
-    <div class="modal-body">
-      <div id="channelViewList" class="check-list"></div>
-    </div>
-    <div class="modal-foot">
-      <button id="showAllChannelsButton" class="button" type="button">Show All</button>
-      <button class="button primary" type="button" data-close-dialog="channelViewDialog">Done</button>
-    </div>
+  <!-- LIST VIEW -->
+  <div id="view-list" style="display:none;flex:1;overflow:hidden">
+    <div class="list-view" id="listView"></div>
   </div>
 
-  <div id="noteDialog" class="modal" role="dialog" aria-modal="true" hidden>
-    <div class="modal-head">
-      <h2 id="modalTitle" class="modal-title">Notes</h2>
-      <button class="icon-button" type="button" data-close-dialog="noteDialog">&times;</button>
-    </div>
-    <div class="modal-body">
-      <div class="note-form">
-        <textarea id="noteText" placeholder="Add manager request, update, or completion note"></textarea>
-        <div class="note-meta">
-          <input id="noteAuthor" class="field" type="text" placeholder="Author" />
-          <select id="noteType" class="select">
-            <option value="request">Request</option>
-            <option value="done">Resolved</option>
-            <option value="info">Note</option>
-          </select>
-        </div>
-        <button id="addNoteButton" class="button primary" type="button">Add to History</button>
+  <!-- MANAGE VIEW (mobile sidebar equivalent) -->
+  <div id="view-manage" style="display:none;flex:1;overflow:hidden">
+    <div class="mobile-sidebar">
+      <div style="margin-bottom:20px">
+        <h4 style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;display:flex;justify-content:space-between">
+          Calendar
+        </h4>
+        <div id="miniCalMobile"></div>
       </div>
-      <div id="historyList" class="history"></div>
-    </div>
-    <div class="modal-foot">
-      <button id="clearProductNotes" class="button danger" type="button">Delete Notes for this SKU</button>
-      <button class="button primary" type="button" data-close-dialog="noteDialog">Close</button>
+      <div style="margin-bottom:18px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.5px">Models</span>
+          <span style="font-size:11px;color:var(--accent);cursor:pointer;font-weight:600" onclick="focusAdd('model')">+ Add</span>
+        </div>
+        <div class="btn-grid" id="modelBtnGridM"></div>
+        <div class="add-inline" id="modelAddRowM" style="display:none">
+          <input id="modelAddInputM" placeholder="Model name" onkeydown="if(event.key==='Enter')commitAddM('model')">
+          <button onclick="commitAddM('model')">Add</button>
+        </div>
+      </div>
+      <div style="margin-bottom:18px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.5px">Products</span>
+          <span style="font-size:11px;color:var(--accent);cursor:pointer;font-weight:600" onclick="focusAdd('product')">+ Add</span>
+        </div>
+        <div class="btn-grid" id="productBtnGridM"></div>
+        <div class="add-inline" id="productAddRowM" style="display:none">
+          <input id="productAddInputM" placeholder="Product name" onkeydown="if(event.key==='Enter')commitAddM('product')">
+          <button onclick="commitAddM('product')">Add</button>
+        </div>
+      </div>
+      <div style="margin-bottom:18px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.5px">Locations</span>
+          <span style="font-size:11px;color:var(--accent);cursor:pointer;font-weight:600" onclick="focusAdd('location')">+ Add</span>
+        </div>
+        <div class="btn-grid" id="locationBtnGridM"></div>
+        <div class="add-inline" id="locationAddRowM" style="display:none">
+          <input id="locationAddInputM" placeholder="Location name" onkeydown="if(event.key==='Enter')commitAddM('location')">
+          <button onclick="commitAddM('location')">Add</button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <script>
-    const dataKey = "size-chart-dashboard-data-v2";
-    const notesKey = "size-chart-dashboard-notes-v2";
+</div>
 
-    const statuses = [
-      { id: "not_started", label: "Not Started" },
-      { id: "in_progress", label: "In Progress" },
-      { id: "work_complete", label: "Work Complete" },
-      { id: "review_complete", label: "Review Complete" },
-      { id: "rejected", label: "Rejected" }
-    ];
+<!-- Mobile Bottom Nav -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <button class="bnav-btn active" id="bnav-day" onclick="switchTab('day')">
+      <span class="bnav-icon">📅</span>Day
+    </button>
+    <button class="bnav-btn" id="bnav-list" onclick="switchTab('list')">
+      <span class="bnav-icon">📋</span>All
+    </button>
+    <button class="bnav-btn" id="bnav-manage" onclick="switchTab('manage')">
+      <span class="bnav-icon">👗</span>Manage
+    </button>
+  </div>
+</nav>
 
-    const overallStatuses = [
-      { id: "not_started", label: "Not Started" },
-      { id: "in_progress", label: "In Progress" },
-      { id: "complete", label: "Complete" },
-      { id: "rejected", label: "Rejected" }
-    ];
+<!-- Detail Popup (mobile) -->
+<div class="detail-backdrop" id="detailBackdrop" onclick="closeDetailPopup()"></div>
+<div class="detail-popup" id="detailPopup">
+  <div class="detail-popup-title" id="dpTitle"></div>
+  <div class="detail-popup-time" id="dpTime"></div>
+  <div class="detail-popup-tags" id="dpTags"></div>
+  <div class="detail-popup-btns">
+    <button class="dp-edit" onclick="dpEdit()">✏️ Edit</button>
+    <button class="dp-del" onclick="dpDelete()">🗑 Delete</button>
+    <button class="dp-close" onclick="closeDetailPopup()">✕</button>
+  </div>
+</div>
 
-    const defaultData = {
-      channels: [
-        { id: "chewy", name: "Chewy" },
-        { id: "company_website", name: "Company Website" },
-        { id: "amazon", name: "Amazon" }
-      ],
-      products: [
-        {
-          sku: "SKU-001",
-          name: "Sample Harness Small",
-          category: "Harness",
-          channels: {
-            chewy: { status: "in_progress", url: "https://drive.google.com/" },
-            company_website: { status: "work_complete", url: "https://drive.google.com/" },
-            amazon: { status: "review_complete", url: "https://drive.google.com/" }
-          }
-        },
-        {
-          sku: "SKU-002",
-          name: "Sample Collar Medium",
-          category: "Collar",
-          channels: {
-            chewy: { status: "review_complete", url: "https://drive.google.com/" },
-            company_website: { status: "in_progress", url: "https://drive.google.com/" },
-            amazon: { status: "rejected", url: "https://drive.google.com/" }
-          }
-        },
-        {
-          sku: "SKU-003",
-          name: "Sample Leash Large",
-          category: "Leash",
-          channels: {
-            chewy: { status: "not_started", url: "" },
-            company_website: { status: "review_complete", url: "https://drive.google.com/" },
-            amazon: { status: "in_progress", url: "https://drive.google.com/" }
-          }
-        }
-      ]
-    };
+<!-- Mobile FAB -->
+<button class="fab" id="fabAdd">＋</button>
 
-    const rowsEl = document.querySelector("#productRows");
-    const tableHead = document.querySelector("#tableHead");
-    const emptyState = document.querySelector("#emptyState");
-    const searchInput = document.querySelector("#searchInput");
-    const statusFilter = document.querySelector("#statusFilter");
-    const sortButton = document.querySelector("#sortButton");
-    const resetButton = document.querySelector("#resetButton");
-    const saveButton = document.querySelector("#saveButton");
-    const saveStatus = document.querySelector("#saveStatus");
-    const undoButton = document.querySelector("#undoButton");
-    const redoButton = document.querySelector("#redoButton");
-    const channelViewButton = document.querySelector("#channelViewButton");
-    const channelList = document.querySelector("#channelList");
-    const addProductButton = document.querySelector("#addProductButton");
-    const addChannelButton = document.querySelector("#addChannelButton");
-    const productDialog = document.querySelector("#productDialog");
-    const channelDialog = document.querySelector("#channelDialog");
-    const sortDialog = document.querySelector("#sortDialog");
-    const channelViewDialog = document.querySelector("#channelViewDialog");
-    const noteDialog = document.querySelector("#noteDialog");
-    const productModalTitle = document.querySelector("#productModalTitle");
-    const productForm = document.querySelector("#productForm");
-    const productSku = document.querySelector("#productSku");
-    const productName = document.querySelector("#productName");
-    const productCategory = document.querySelector("#productCategory");
-    const productChannelFields = document.querySelector("#productChannelFields");
-    const saveProductButton = document.querySelector("#saveProductButton");
-    const channelNameInput = document.querySelector("#channelNameInput");
-    const saveChannelButton = document.querySelector("#saveChannelButton");
-    const sortKeySelect = document.querySelector("#sortKeySelect");
-    const sortDirectionSelect = document.querySelector("#sortDirectionSelect");
-    const applySortButton = document.querySelector("#applySortButton");
-    const channelViewList = document.querySelector("#channelViewList");
-    const showAllChannelsButton = document.querySelector("#showAllChannelsButton");
-    const modalTitle = document.querySelector("#modalTitle");
-    const noteText = document.querySelector("#noteText");
-    const noteAuthor = document.querySelector("#noteAuthor");
-    const noteType = document.querySelector("#noteType");
-    const addNoteButton = document.querySelector("#addNoteButton");
-    const historyList = document.querySelector("#historyList");
-    const clearProductNotes = document.querySelector("#clearProductNotes");
+<div class="drag-tooltip" id="dragTooltip"></div>
 
-    let state = loadData();
-    let activeSku = null;
-    let editingSku = null;
-    let sortState = { key: "sku", direction: "asc" };
-    let remoteReady = false;
-    let remoteSaveTimer = null;
-    let remoteLoadTimer = null;
-    let undoStack = [];
-    let redoStack = [];
-    let isRestoringHistory = false;
-    let visibleChannelIds = [];
+<!-- MAIN MODAL -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3 id="modalTitle">New Event</h3>
+    <div class="field"><label>Title</label><input type="text" id="evTitle" placeholder="Session name"></div>
+    <div class="row2">
+      <div class="field"><label>Date</label><input type="date" id="evDate"></div>
+      <div class="field"><label>Color</label><div class="color-row" id="colorRow"></div></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Start</label><input type="time" id="evStart" step="300"></div>
+      <div class="field"><label>End</label><input type="time" id="evEnd" step="300"></div>
+    </div>
+    <div class="field">
+      <label>👤 Models</label>
+      <div class="toggle-group" id="modelToggleGroup"></div>
+      <div class="or-divider">or custom:</div>
+      <div class="chip-row" id="modelCustomChips"></div>
+      <div class="chip-add-row"><input id="modelCustomInput" placeholder="Type & Enter" onkeydown="if(event.key==='Enter')addCustomChip('model')"><button onclick="addCustomChip('model')">+</button></div>
+    </div>
+    <div class="field">
+      <label>👗 Products & Sizes</label>
+      <div class="toggle-group" id="productToggleGroup"></div>
+      <div class="or-divider">or custom:</div>
+      <div class="chip-row" id="productCustomChips"></div>
+      <div class="chip-add-row"><input id="productCustomInput" placeholder="Type & Enter" onkeydown="if(event.key==='Enter')addCustomChip('product')"><button onclick="addCustomChip('product')">+</button></div>
+      <div id="productSizeSelectors" style="margin-top:10px;display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+    <div class="field">
+      <label>📍 Locations</label>
+      <div class="toggle-group" id="locationToggleGroup"></div>
+      <div class="or-divider">or custom:</div>
+      <div class="chip-row" id="locationCustomChips"></div>
+      <div class="chip-add-row"><input id="locationCustomInput" placeholder="Type & Enter" onkeydown="if(event.key==='Enter')addCustomChip('location')"><button onclick="addCustomChip('location')">+</button></div>
+    </div>
+    <div class="field"><label>Notes</label><textarea id="evNote" placeholder="Additional notes"></textarea></div>
+    <div class="modal-btns">
+      <button class="mcancel" id="cancelBtn">Cancel</button>
+      <button class="msave" id="saveBtn">Save</button>
+    </div>
+  </div>
+</div>
 
-    function clone(value) {
-      return JSON.parse(JSON.stringify(value));
+<!-- PRODUCT SIZE MODAL -->
+<div class="overlay" id="prodOverlay">
+  <div class="prod-modal">
+    <h3 id="prodModalTitle">Edit Product</h3>
+    <div style="font-size:11px;color:var(--sub);margin-bottom:10px">Select available sizes:</div>
+    <div class="size-grid" id="sizeGrid"></div>
+    <div class="custom-size-row">
+      <input id="customSizeInput" placeholder="Custom size (e.g. 38EU)" onkeydown="if(event.key==='Enter')addCustomSize()">
+      <button onclick="addCustomSize()">+ Add</button>
+    </div>
+    <div class="prod-modal-btns">
+      <button style="background:var(--border);color:var(--sub)" onclick="closeProdModal()">Cancel</button>
+      <button style="background:var(--accent);color:#fff" onclick="saveProdSizes()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const BIN_ID='6a19c79addf5aa59f7755806';
+const API_KEY='$2a$10$vs9yBR4mqZ9vlQvUnxjbFeTGwsEyb7OuTgHhgdRHgFqgeyIoBxdze';
+const API_URL=`https://api.jsonbin.io/v3/b/${BIN_ID}`;
+const COLORS=['c0','c1','c2','c3','c4','c5','c6'];
+const COLOR_BG=['#e0e7ff','#fce7f3','#d1fae5','#fef3c7','#fee2e2','#e0f2fe','#f3e8ff'];
+const STD_SIZES=['XS','S','M','L','XL','XXL','Free','34','36','38','40','42','44'];
+const PX_PER_MIN=64/60,SNAP=5;
+
+let data={events:[],models:['Jia Kim','Suhyeon Park','Nayeon Lee'],products:[{name:'White Blouse A',sizes:['S','M']},{name:'Denim B',sizes:['M','L']},{name:'Summer Dress C',sizes:['Free']}],locations:['Studio 1','Rooftop','Cafe Set']};
+let currentDate=new Date();currentDate.setHours(0,0,0,0);
+let editId=null,selColor=0,activeTab='day';
+let sel={model:new Set(),product:new Set(),location:new Set()};
+let custom={model:[],product:[],location:[]};
+let evProductSizes={};
+let dragState=null,resizeState=null,saveTimer=null;
+let editingProductIdx=null,tmpSizes=new Set();
+const tooltip=document.getElementById('dragTooltip');
+const syncEl=document.getElementById('syncStatus');
+
+const fmt=d=>d.toISOString().slice(0,10);
+const dateFromStr=s=>new Date(s+'T00:00:00');
+const minToTime=m=>{m=Math.max(0,Math.min(1439,m));return`${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;};
+const timeToMin=t=>{if(!t)return 0;const[h,m]=t.split(':').map(Number);return h*60+(m||0);};
+const snapMin=m=>Math.round(m/SNAP)*SNAP;
+const escQ=s=>s.replace(/'/g,"\\'");
+const getProdObj=name=>data.products.find(p=>p.name===name)||{name,sizes:[]};
+const isMobile=()=>window.innerWidth<=768;
+
+// ── CLOUD ──
+async function loadFromCloud(){
+  try{
+    const res=await fetch(API_URL+'/latest',{headers:{'X-Master-Key':API_KEY}});
+    if(!res.ok)throw new Error();
+    const json=await res.json();
+    if(json.record&&json.record.events){
+      data=json.record;
+      if(data.products&&data.products.length&&typeof data.products[0]==='string')
+        data.products=data.products.map(p=>({name:p,sizes:[]}));
     }
+  }catch(e){console.warn('Load failed',e);}
+  document.getElementById('loadingScreen').style.display='none';
+  renderAll();
+}
+async function saveToCloud(){
+  setSyncStatus('saving');
+  try{
+    const res=await fetch(API_URL,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':API_KEY},body:JSON.stringify(data)});
+    if(!res.ok)throw new Error();
+    setSyncStatus('saved');
+  }catch(e){setSyncStatus('error');}
+}
+function setSyncStatus(s){syncEl.className='sync-status '+s;syncEl.textContent=s==='saving'?'⏳ Saving...':s==='saved'?'✓ Saved':'✗ Error';}
+function save(){clearTimeout(saveTimer);setSyncStatus('saving');saveTimer=setTimeout(()=>saveToCloud(),1000);}
 
-    function loadData() {
-      try {
-        const saved = JSON.parse(localStorage.getItem(dataKey));
-        return normalizeData(saved || clone(defaultData));
-      } catch {
-        return clone(defaultData);
-      }
+// ── TABS ──
+function switchTab(t){
+  activeTab=t;
+  // desktop tabs
+  ['day','list','manage'].forEach(id=>{
+    const el=document.getElementById('tab-'+id);
+    if(el)el.className='tab'+(t===id?' active':'');
+  });
+  // bottom nav
+  ['day','list','manage'].forEach(id=>{
+    const el=document.getElementById('bnav-'+id);
+    if(el)el.className='bnav-btn'+(t===id?' active':'');
+  });
+  // views
+  document.getElementById('view-day').style.display=t==='day'?'flex':'none';
+  document.getElementById('view-list').style.display=t==='list'?'flex':'none';
+  document.getElementById('view-manage').style.display=t==='manage'?'flex':'none';
+  if(t==='list')renderList();
+  if(t==='manage'){renderMiniCalMobile();renderSidebar();}
+}
+
+document.getElementById('prevDay').onclick=()=>{currentDate.setDate(currentDate.getDate()-1);renderAll();};
+document.getElementById('nextDay').onclick=()=>{currentDate.setDate(currentDate.getDate()+1);renderAll();};
+document.getElementById('todayBtn').onclick=()=>{currentDate=new Date();currentDate.setHours(0,0,0,0);renderAll();};
+document.getElementById('openAdd').onclick=()=>openModal(null);
+document.getElementById('fabAdd').onclick=()=>openModal(null);
+
+function renderAll(){updateDateLabel();renderDayView();renderSidebar();renderMiniCal();if(activeTab==='list')renderList();if(activeTab==='manage'){renderMiniCalMobile();}}
+
+function updateDateLabel(){
+  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],d=currentDate;
+  document.getElementById('dateLabel').textContent=isMobile()?
+    `${d.getMonth()+1}/${d.getDate()} (${days[d.getDay()].slice(0,3)})`:
+    `${days[d.getDay()]}, ${d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`;
+}
+
+// ── DAY VIEW ──
+function renderDayView(){
+  const axis=document.getElementById('timeAxis'),col=document.getElementById('scheduleCol');
+  axis.innerHTML='';col.innerHTML='';
+  const totalPx=24*64;
+  col.style.height=totalPx+'px';axis.style.height=totalPx+'px';axis.style.position='relative';
+  for(let h=0;h<=24;h++){
+    const y=h*64;
+    const gl=document.createElement('div');gl.className='grid-line';gl.style.top=y+'px';col.appendChild(gl);
+    if(h<24){
+      const lbl=document.createElement('div');lbl.className='time-tick';lbl.style.top=y+'px';
+      lbl.textContent=`${String(h).padStart(2,'0')}:00`;axis.appendChild(lbl);
+      const gl2=document.createElement('div');gl2.className='grid-line minor';gl2.style.top=(y+32)+'px';col.appendChild(gl2);
     }
+  }
+  const now=new Date();
+  if(fmt(now)===fmt(currentDate)){
+    const nl=document.createElement('div');nl.className='now-line';
+    nl.style.top=((now.getHours()*60+now.getMinutes())*PX_PER_MIN)+'px';col.appendChild(nl);
+  }
+  col.addEventListener('mousedown',colMouseDown);
+  col.addEventListener('touchend',colTouchEnd,{passive:true});
+  const todayStr=fmt(currentDate);
+  placeEvents(data.events.filter(e=>e.date===todayStr).sort((a,b)=>a.start.localeCompare(b.start)),col);
+  const dv=document.getElementById('dayView');
+  if(dv.scrollTop===0)dv.scrollTop=8*64;
+}
 
-    function formatSaveTime() {
-      return new Date().toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        second: "2-digit"
-      });
-    }
+function placeEvents(dayEvs,col){
+  const placed=[];
+  dayEvs.forEach(ev=>{
+    const s=timeToMin(ev.start),e=Math.max(timeToMin(ev.end||ev.start)+5,s+5);
+    let c=0;placed.forEach(p=>{if(s<p.e&&e>p.s)c=Math.max(c,p.col+1);});
+    placed.push({ev,s,e,col:c});
+  });
+  placed.forEach(({ev,s,e,col:c})=>{
+    const totalCols=placed.filter(p=>p.s<e&&p.e>s).length||1;
+    const topPx=s*PX_PER_MIN,htPx=Math.max((e-s)*PX_PER_MIN,22);
+    const wPct=96/totalCols,lPct=2+c*wPct,rPct=2+(totalCols-c-1)*wPct;
+    const el=document.createElement('div');
+    el.className=`ev ${ev.color||'c0'}`;
+    el.style.top=topPx+'px';el.style.height=htPx+'px';
+    el.style.left=lPct+'%';el.style.right=rPct+'%';el.style.width='auto';
+    const prodTags=(ev.products||[]).map(pname=>{
+      const sz=ev.productSizes&&ev.productSizes[pname]?` [${ev.productSizes[pname]}]`:'';
+      return`👗 ${pname}${sz}`;
+    });
+    const tags=[];
+    if(ev.models?.length)tags.push(`👤 ${ev.models.join(', ')}`);
+    prodTags.forEach(t=>tags.push(t));
+    if(ev.locations?.length)tags.push(`📍 ${ev.locations.join(', ')}`);
+    el.innerHTML=`<div class="ev-del">×</div>
+      <div class="ev-title">${ev.title}</div>
+      <div class="ev-time">${ev.start} – ${ev.end}</div>
+      ${htPx>40?`<div class="ev-meta">${tags.map(t=>`<span class="ev-tag">${t}</span>`).join('')}</div>`:''}
+      <div class="ev-resize"></div>`;
+    el.addEventListener('mousedown',e=>{if(e.target.classList.contains('ev-resize')||e.target.classList.contains('ev-del'))return;startDrag(e,ev,el);});
+    el.addEventListener('dblclick',e=>{e.stopPropagation();dragState=null;openModal(ev);});
+    // MOBILE: tap = detail popup, long press = drag
+    el.addEventListener('touchstart',e=>{
+      if(e.target.classList.contains('ev-resize')||e.target.classList.contains('ev-del'))return;
+      e.stopPropagation();
+      let longPressed=false;
+      const lpt=setTimeout(()=>{
+        longPressed=true;
+        el.classList.add('drag-ready');
+        if(navigator.vibrate)navigator.vibrate(40);
+        startTouchDrag(e,ev,el,()=>el.classList.remove('drag-ready'));
+      },400);
+      el.addEventListener('touchend',()=>{
+        clearTimeout(lpt);
+        if(!longPressed){el.classList.remove('drag-ready');openDetailPopup(ev);}
+      },{once:true});
+      el.addEventListener('touchmove',()=>{clearTimeout(lpt);},{once:true,passive:true});
+    },{passive:true});
+    // touch resize handle
+    el.querySelector('.ev-resize').addEventListener('touchstart',e=>{e.stopPropagation();startTouchResize(e,ev,el);},{passive:false});
+    col.appendChild(el);
+  });
+}
 
-    function updateSaveStatus(label) {
-      saveStatus.textContent = `${label} at ${formatSaveTime()}`;
-    }
+function colMouseDown(e){if(e.target!==e.currentTarget)return;const rect=e.currentTarget.getBoundingClientRect();openModal(null,fmt(currentDate),snapMin((e.clientY-rect.top)/PX_PER_MIN));}
+function colTouchEnd(e){if(e.target!==e.currentTarget)return;const rect=e.currentTarget.getBoundingClientRect();const t=e.changedTouches[0];openModal(null,fmt(currentDate),snapMin((t.clientY-rect.top)/PX_PER_MIN));}
 
-    function saveData(label = "Auto saved") {
-      localStorage.setItem(dataKey, JSON.stringify(state));
-      updateSaveStatus(label);
-      queueRemoteSave();
-    }
+// ── MOUSE DRAG ──
+function startDrag(e,ev,el){
+  e.preventDefault();
+  const rect=document.getElementById('scheduleCol').getBoundingClientRect();
+  const startY=e.clientY;let moved=false;
+  function onMove(e2){
+    if(!moved&&Math.abs(e2.clientY-startY)>5){moved=true;dragState={ev,el,offsetY:startY-(rect.top+timeToMin(ev.start)*PX_PER_MIN),durMin:timeToMin(ev.end)-timeToMin(ev.start),rect};el.classList.add('dragging');showTooltip(ev.start,ev.end);}
+    if(moved)onDragMove(e2);
+  }
+  function onUp(e2){document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);if(moved)onDragEnd(e2);}
+  document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp);
+}
+function onDragMove(e){if(!dragState)return;const{el,offsetY,durMin,rect}=dragState;const snapped=Math.max(0,Math.min(1439-durMin,snapMin((e.clientY-rect.top-offsetY)/PX_PER_MIN)));el.style.top=(snapped*PX_PER_MIN)+'px';updateTooltip(minToTime(snapped),minToTime(snapped+durMin));tooltip.style.left=(e.clientX+14)+'px';tooltip.style.top=(e.clientY-10)+'px';}
+function onDragEnd(e){if(!dragState)return;const{ev,offsetY,durMin,rect}=dragState;const snapped=Math.max(0,Math.min(1439-durMin,snapMin((e.clientY-rect.top-offsetY)/PX_PER_MIN)));const idx=data.events.findIndex(x=>x.id===ev.id);if(idx>=0){data.events[idx].start=minToTime(snapped);data.events[idx].end=minToTime(Math.min(1440,snapped+durMin));}save();document.removeEventListener('mousemove',onDragMove);document.removeEventListener('mouseup',onDragEnd);dragState=null;hideTooltip();renderDayView();}
 
-    function normalizeData(data) {
-      const normalized = data && data.channels && data.products ? data : clone(defaultData);
-      normalized.products.forEach((product) => {
-        product.channels = product.channels || {};
-        normalized.channels.forEach((channel) => {
-          if (!product.channels[channel.id]) {
-            product.channels[channel.id] = { status: "not_started", url: "" };
-          }
-          if (!statuses.some((status) => status.id === product.channels[channel.id].status)) {
-            product.channels[channel.id].status = "not_started";
-          }
-        });
-      });
-      return normalized;
-    }
+// ── TOUCH DRAG ──
+function startTouchDrag(e,ev,el,onEnd){
+  const rect=document.getElementById('scheduleCol').getBoundingClientRect();
+  const t0=e.touches[0];const startY=t0.clientY;
+  let offsetY=startY-(rect.top+timeToMin(ev.start)*PX_PER_MIN);
+  el.classList.add('dragging');showTooltip(ev.start,ev.end);
+  function onMove(e2){
+    e2.preventDefault();
+    const t=e2.touches[0];
+    const snapped=Math.max(0,Math.min(1439-(timeToMin(ev.end)-timeToMin(ev.start)),snapMin((t.clientY-rect.top-offsetY)/PX_PER_MIN)));
+    el.style.top=(snapped*PX_PER_MIN)+'px';
+    updateTooltip(minToTime(snapped),minToTime(snapped+(timeToMin(ev.end)-timeToMin(ev.start))));
+    tooltip.style.left=(t.clientX+14)+'px';tooltip.style.top=(t.clientY-40)+'px';
+  }
+  function onEndTouch(e2){
+    el.removeEventListener('touchmove',onMove);el.removeEventListener('touchend',onEndTouch);
+    const t=e2.changedTouches[0];
+    const durMin=timeToMin(ev.end)-timeToMin(ev.start);
+    const snapped=Math.max(0,Math.min(1439-durMin,snapMin((t.clientY-rect.top-offsetY)/PX_PER_MIN)));
+    const idx=data.events.findIndex(x=>x.id===ev.id);
+    if(idx>=0){data.events[idx].start=minToTime(snapped);data.events[idx].end=minToTime(Math.min(1440,snapped+durMin));}
+    save();hideTooltip();el.classList.remove('dragging');if(onEnd)onEnd();renderDayView();
+  }
+  el.addEventListener('touchmove',onMove,{passive:false});
+  el.addEventListener('touchend',onEndTouch);
+}
 
-    function loadNotes() {
-      try {
-        return JSON.parse(localStorage.getItem(notesKey)) || {};
-      } catch {
-        return {};
-      }
-    }
+// ── TOUCH RESIZE ──
+function startTouchResize(e,ev,el){
+  e.preventDefault();
+  const rect=document.getElementById('scheduleCol').getBoundingClientRect();
+  const startMin=timeToMin(ev.start);
+  function onMove(e2){
+    const t=e2.touches[0];
+    const snapped=Math.max(startMin+SNAP,snapMin((t.clientY-rect.top)/PX_PER_MIN));
+    el.style.height=Math.max(SNAP*PX_PER_MIN,(snapped-startMin)*PX_PER_MIN)+'px';
+    showTooltip(minToTime(startMin),minToTime(snapped));
+    tooltip.style.left=(t.clientX+14)+'px';tooltip.style.top=(t.clientY-40)+'px';
+  }
+  function onEnd(e2){
+    el.removeEventListener('touchmove',onMove);el.removeEventListener('touchend',onEnd);
+    const t=e2.changedTouches[0];
+    const snapped=Math.max(startMin+SNAP,snapMin((t.clientY-rect.top)/PX_PER_MIN));
+    const idx=data.events.findIndex(x=>x.id===ev.id);
+    if(idx>=0)data.events[idx].end=minToTime(Math.min(1440,snapped));
+    save();hideTooltip();renderDayView();
+  }
+  el.addEventListener('touchmove',onMove,{passive:false});
+  el.addEventListener('touchend',onEnd);
+}
 
-    function getSnapshot() {
-      return {
-        state: clone(state),
-        notes: clone(loadNotes())
-      };
-    }
+// ── MOUSE RESIZE ──
+function startResize(e,ev,el){e.preventDefault();const rect=document.getElementById('scheduleCol').getBoundingClientRect();resizeState={ev,el,rect,startMin:timeToMin(ev.start)};el.classList.add('resizing');showTooltip(ev.start,ev.end);document.addEventListener('mousemove',onResizeMove);document.addEventListener('mouseup',onResizeEnd);}
+function onResizeMove(e){if(!resizeState)return;const{el,rect,startMin}=resizeState;const snapped=Math.max(startMin+SNAP,snapMin((e.clientY-rect.top)/PX_PER_MIN));el.style.height=Math.max(SNAP*PX_PER_MIN,(snapped-startMin)*PX_PER_MIN)+'px';updateTooltip(minToTime(startMin),minToTime(snapped));tooltip.style.left=(e.clientX+14)+'px';tooltip.style.top=(e.clientY-10)+'px';}
+function onResizeEnd(e){if(!resizeState)return;const{ev,rect,startMin}=resizeState;const snapped=Math.max(startMin+SNAP,snapMin((e.clientY-rect.top)/PX_PER_MIN));const idx=data.events.findIndex(x=>x.id===ev.id);if(idx>=0)data.events[idx].end=minToTime(Math.min(1440,snapped));save();document.removeEventListener('mousemove',onResizeMove);document.removeEventListener('mouseup',onResizeEnd);resizeState=null;hideTooltip();renderDayView();}
 
-    function getVisibleChannels() {
-      if (!visibleChannelIds.length) {
-        visibleChannelIds = state.channels.map((channel) => channel.id);
-      }
-      visibleChannelIds = visibleChannelIds.filter((id) => state.channels.some((channel) => channel.id === id));
-      if (!visibleChannelIds.length && state.channels.length) {
-        visibleChannelIds = state.channels.map((channel) => channel.id);
-      }
-      return state.channels.filter((channel) => visibleChannelIds.includes(channel.id));
-    }
+function showTooltip(s,e){tooltip.style.display='block';tooltip.textContent=`${s} – ${e}`;}
+function updateTooltip(s,e){tooltip.textContent=`${s} – ${e}`;}
+function hideTooltip(){tooltip.style.display='none';}
 
-    function updateHistoryButtons() {
-      undoButton.disabled = undoStack.length === 0;
-      redoButton.disabled = redoStack.length === 0;
-    }
-
-    function pushHistory() {
-      if (isRestoringHistory) return;
-      undoStack.push(getSnapshot());
-      if (undoStack.length > 80) undoStack.shift();
-      redoStack = [];
-      updateHistoryButtons();
-    }
-
-    function restoreSnapshot(snapshot, label) {
-      if (!snapshot) return;
-      isRestoringHistory = true;
-      state = normalizeData(clone(snapshot.state));
-      localStorage.setItem(dataKey, JSON.stringify(state));
-      localStorage.setItem(notesKey, JSON.stringify(clone(snapshot.notes || {})));
-      renderAll();
-      if (activeSku) renderHistory();
-      isRestoringHistory = false;
-      updateHistoryButtons();
-      saveRemoteState(label);
-    }
-
-    function undo() {
-      if (!undoStack.length) return;
-      redoStack.push(getSnapshot());
-      restoreSnapshot(undoStack.pop(), "Undo saved");
-    }
-
-    function redo() {
-      if (!redoStack.length) return;
-      undoStack.push(getSnapshot());
-      restoreSnapshot(redoStack.pop(), "Redo saved");
-    }
-
-    function saveNotes(notes, label = "Auto saved") {
-      localStorage.setItem(notesKey, JSON.stringify(notes));
-      updateSaveStatus(label);
-      queueRemoteSave();
-    }
-
-    async function saveNow() {
-      localStorage.setItem(dataKey, JSON.stringify(state));
-      localStorage.setItem(notesKey, JSON.stringify(loadNotes()));
-      await saveRemoteState("Saved");
-    }
-
-    function queueRemoteSave() {
-      if (!remoteReady) return;
-      clearTimeout(remoteSaveTimer);
-      remoteSaveTimer = setTimeout(() => {
-        saveRemoteState("Auto saved");
-      }, 650);
-    }
-
-    async function saveRemoteState(label = "Saved") {
-      try {
-        const response = await fetch("/api/state", {
-          method: "PUT",
-          headers: {
-            "content-type": "application/json"
-          },
-          body: JSON.stringify({
-            state,
-            notes: loadNotes()
-          })
-        });
-
-        if (!response.ok) throw new Error("Remote save failed");
-        remoteReady = true;
-        updateSaveStatus(label);
-      } catch {
-        updateSaveStatus("Saved locally");
-      }
-    }
-
-    async function loadRemoteState() {
-      try {
-        const response = await fetch("/api/state", { cache: "no-store" });
-        if (!response.ok) throw new Error("Remote load failed");
-        const payload = await response.json();
-        remoteReady = true;
-
-        if (payload.state) {
-          state = normalizeData(payload.state);
-          localStorage.setItem(dataKey, JSON.stringify(state));
-        }
-        if (payload.notes) {
-          localStorage.setItem(notesKey, JSON.stringify(payload.notes));
-        }
-
-        renderAll();
-        updateSaveStatus("Synced");
-      } catch {
-        remoteReady = false;
-        updateSaveStatus("Local mode");
-      }
-    }
-
-    function startRemoteSync() {
-      loadRemoteState();
-      clearInterval(remoteLoadTimer);
-      remoteLoadTimer = setInterval(() => {
-        if (!document.hidden) loadRemoteState();
-      }, 15000);
-    }
-
-    function escapeHTML(value) {
-      return String(value || "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-
-    function slugify(value) {
-      const base = value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
-      return base || `website_${Date.now()}`;
-    }
-
-    function getStatusLabel(statusId) {
-      return statuses.find((status) => status.id === statusId)?.label || "Not Started";
-    }
-
-    function getOverallStatusLabel(statusId) {
-      return overallStatuses.find((status) => status.id === statusId)?.label || "Not Started";
-    }
-
-    function getStatusRank(statusId) {
-      const index = overallStatuses.findIndex((status) => status.id === statusId);
-      if (index !== -1) return index;
-      const channelIndex = statuses.findIndex((status) => status.id === statusId);
-      return channelIndex === -1 ? 0 : channelIndex;
-    }
-
-    function getChannelStatusRank(statusId) {
-      const index = statuses.findIndex((status) => status.id === statusId);
-      return index === -1 ? 0 : index;
-    }
-
-    function naturalCompare(left, right) {
-      return String(left || "").localeCompare(String(right || ""), undefined, {
-        numeric: true,
-        sensitivity: "base"
-      });
-    }
-
-    function latestNoteValue(sku) {
-      const latestNote = getLatestNote(sku);
-      return latestNote ? `${latestNote.createdAt} ${latestNote.text}` : "";
-    }
-
-    function getSortValue(product, key) {
-      if (key === "sku") return product.sku;
-      if (key === "name") return product.name;
-      if (key === "overall") return getStatusRank(getProductOverallStatus(product));
-      if (key === "note") return latestNoteValue(product.sku);
-      if (key.startsWith("channel:")) {
-        const channelId = key.replace("channel:", "");
-        return getChannelStatusRank(product.channels[channelId]?.status || "not_started");
-      }
-      return "";
-    }
-
-    function sortProducts(products) {
-      const sorted = [...products];
-      const direction = sortState.direction === "asc" ? 1 : -1;
-      sorted.sort((left, right) => {
-        const leftValue = getSortValue(left, sortState.key);
-        const rightValue = getSortValue(right, sortState.key);
-        let result = typeof leftValue === "number" && typeof rightValue === "number"
-          ? leftValue - rightValue
-          : naturalCompare(leftValue, rightValue);
-        if (result === 0) result = naturalCompare(left.sku, right.sku);
-        return result * direction;
-      });
-      return sorted;
-    }
-
-    function getProductOverallStatus(product) {
-      const productStatuses = state.channels.map((channel) => product.channels[channel.id]?.status || "not_started");
-      if (productStatuses.includes("rejected")) return "rejected";
-      if (productStatuses.every((status) => status === "review_complete")) return "complete";
-      if (productStatuses.every((status) => status === "not_started")) return "not_started";
-      if (productStatuses.some((status) => status !== "not_started")) return "in_progress";
-      return "not_started";
-    }
-
-    function getLatestNote(sku) {
-      const notes = loadNotes()[sku] || [];
-      return notes[0] || null;
-    }
-
-    function getOpenNoteCount() {
-      const notes = loadNotes();
-      return Object.values(notes).reduce((count, skuNotes) => {
-        const latestRequestIndex = skuNotes.findIndex((note) => note.type === "request");
-        const latestDoneIndex = skuNotes.findIndex((note) => note.type === "done");
-        return count + (latestRequestIndex !== -1 && (latestDoneIndex === -1 || latestRequestIndex < latestDoneIndex) ? 1 : 0);
-      }, 0);
-    }
-
-    function showDialog(dialog) {
-      dialog.hidden = false;
-      document.body.classList.add("modal-open");
-    }
-
-    function hideDialog(dialog) {
-      dialog.hidden = true;
-      document.body.classList.remove("modal-open");
-    }
-
-    function renderStatusFilter() {
-      statusFilter.innerHTML = '<option value="all">All Statuses</option>' +
-        statuses.map((status) => `<option value="${status.id}">${status.label}</option>`).join("");
-    }
-
-    function renderTableHead() {
-      const visibleChannels = getVisibleChannels();
-      tableHead.innerHTML = `
-        <th>SKU</th>
-        <th>Product Name</th>
-        <th>Overall Status</th>
-        ${visibleChannels.map((channel) => `<th>${escapeHTML(channel.name)}</th>`).join("")}
-        <th>Latest Note</th>
-        <th>Actions</th>
-      `;
-    }
-
-    function renderSortOptions() {
-      const options = [
-        { key: "sku", label: "SKU" },
-        { key: "name", label: "Product Name" },
-        { key: "overall", label: "Overall Status" },
-        ...state.channels.map((channel) => ({
-          key: `channel:${channel.id}`,
-          label: `${channel.name} Status`
-        })),
-        { key: "note", label: "Latest Note" }
-      ];
-      sortKeySelect.innerHTML = options
-        .map((option) => `<option value="${escapeHTML(option.key)}">${escapeHTML(option.label)}</option>`)
-        .join("");
-      sortKeySelect.value = sortState.key;
-      sortDirectionSelect.value = sortState.direction;
-    }
-
-    function openSortDialog() {
-      renderSortOptions();
-      showDialog(sortDialog);
-    }
-
-    function applySort() {
-      sortState = {
-        key: sortKeySelect.value,
-        direction: sortDirectionSelect.value
-      };
-      hideDialog(sortDialog);
-      renderRows();
-    }
-
-    function renderChannelList() {
-      const visibleSet = new Set(getVisibleChannels().map((channel) => channel.id));
-      channelList.innerHTML = state.channels
-        .map((channel) => `
-          <span class="pill" title="${visibleSet.has(channel.id) ? "Visible" : "Hidden"}">
-            ${escapeHTML(channel.name)}
-            ${visibleSet.has(channel.id) ? "" : "(hidden)"}
-            <button type="button" title="Remove ${escapeHTML(channel.name)}" data-delete-channel-id="${escapeHTML(channel.id)}">x</button>
-          </span>
-        `)
-        .join("");
-    }
-
-    function renderChannelViewOptions() {
-      const visibleSet = new Set(getVisibleChannels().map((channel) => channel.id));
-      channelViewList.innerHTML = state.channels.map((channel) => `
-        <label class="check-row">
-          <span>${escapeHTML(channel.name)}</span>
-          <input type="checkbox" data-visible-channel-id="${escapeHTML(channel.id)}" ${visibleSet.has(channel.id) ? "checked" : ""} />
-        </label>
-      `).join("");
-    }
-
-    function openChannelViewDialog() {
-      renderChannelViewOptions();
-      showDialog(channelViewDialog);
-    }
-
-    function applyChannelVisibility(channelId, checked) {
-      const next = new Set(getVisibleChannels().map((channel) => channel.id));
-      if (checked) {
-        next.add(channelId);
-      } else {
-        next.delete(channelId);
-      }
-      visibleChannelIds = [...next];
-      renderTableHead();
-      renderChannelList();
-      renderRows();
-      renderChannelViewOptions();
-    }
-
-    function showAllChannels() {
-      visibleChannelIds = state.channels.map((channel) => channel.id);
-      renderTableHead();
-      renderChannelList();
-      renderRows();
-      renderChannelViewOptions();
-    }
-
-    function matchesFilters(product) {
-      const term = searchInput.value.trim().toLowerCase();
-      const status = statusFilter.value;
-      const textMatch = !term ||
-        product.sku.toLowerCase().includes(term) ||
-        product.name.toLowerCase().includes(term);
-      const statusMatch = status === "all" ||
-        getProductOverallStatus(product) === status ||
-        Object.values(product.channels).some((channel) => channel.status === status);
-      return textMatch && statusMatch;
-    }
-
-    function renderStats(filteredProducts) {
-      document.querySelector("#totalCount").textContent = filteredProducts.length;
-      document.querySelector("#notStartedCount").textContent =
-        filteredProducts.filter((product) => getProductOverallStatus(product) === "not_started").length;
-      document.querySelector("#inProgressCount").textContent =
-        filteredProducts.filter((product) => getProductOverallStatus(product) === "in_progress").length;
-      document.querySelector("#reviewCompleteCount").textContent =
-        filteredProducts.filter((product) => getProductOverallStatus(product) === "complete").length;
-      document.querySelector("#rejectedCount").textContent =
-        filteredProducts.filter((product) => getProductOverallStatus(product) === "rejected").length;
-      document.querySelector("#openNotes").textContent = getOpenNoteCount();
-    }
-
-    function renderChannelCell(product, channel) {
-      const data = product.channels[channel.id] || { status: "not_started", url: "" };
-      const href = data.url ? escapeHTML(data.url) : "#";
-      const disabled = data.url ? "" : " disabled";
-      return `
-        <div class="channel-cell">
-          <select class="channel-status" data-status-sku="${escapeHTML(product.sku)}" data-channel-id="${escapeHTML(channel.id)}">
-            ${statuses.map((status) => `<option value="${status.id}" ${data.status === status.id ? "selected" : ""}>${status.label}</option>`).join("")}
-          </select>
-          <div class="link-row">
-            <input class="url-input" data-url-sku="${escapeHTML(product.sku)}" data-channel-id="${escapeHTML(channel.id)}" value="${escapeHTML(data.url)}" placeholder="Google Drive link" />
-            <a class="drive-link${disabled}" href="${href}" target="_blank" rel="noopener">Open</a>
+// ── LIST ──
+function renderList(){
+  const lv=document.getElementById('listView');
+  const sorted=[...data.events].sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start));
+  if(!sorted.length){lv.innerHTML='<div class="empty">No events yet</div>';return;}
+  const groups={};sorted.forEach(ev=>{(groups[ev.date]=groups[ev.date]||[]).push(ev);});
+  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  lv.innerHTML=Object.entries(groups).map(([date,evs])=>{
+    const d=dateFromStr(date);
+    return`<div class="list-date-group">
+      <div class="list-date-header">${days[d.getDay()]}, ${d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}</div>
+      ${evs.map(ev=>{
+        const bg=COLOR_BG[COLORS.indexOf(ev.color||'c0')]||'#e0e7ff';
+        const tags=[...(ev.models||[]).map(m=>`👤 ${m}`), ...(ev.products||[]).map(p=>{const sz=ev.productSizes&&ev.productSizes[p]?` [${ev.productSizes[p]}]`:'';return`👗 ${p}${sz}`;}), ...(ev.locations||[]).map(l=>`📍 ${l}`)];
+        return`<div class="list-item" onclick='openModal(${JSON.stringify(ev).replace(/'/g,"&#39;")})'>
+          <div class="list-color" style="background:${bg}"></div>
+          <div class="list-info">
+            <div class="list-title">${ev.title}</div>
+            <div class="list-time">⏰ ${ev.start} – ${ev.end}</div>
+            <div class="list-tags">${tags.map(t=>`<span class="list-tag">${t}</span>`).join('')}${ev.note?`<span class="list-tag">📝 ${ev.note}</span>`:''}</div>
           </div>
-        </div>
-      `;
-    }
+          <div class="list-del" onclick="event.stopPropagation();deleteEv(${ev.id})">×</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+}
+function deleteEv(id){data.events=data.events.filter(e=>e.id!==id);save();renderAll();}
 
-    function renderRows() {
-      const filteredProducts = sortProducts(state.products.filter(matchesFilters));
-      rowsEl.innerHTML = filteredProducts.map((product) => {
-        const visibleChannels = getVisibleChannels();
-        const latestNote = getLatestNote(product.sku);
-        const preview = latestNote
-          ? `<strong>${latestNote.type === "done" ? "Resolved" : latestNote.type === "request" ? "Request" : "Note"}</strong>: ${escapeHTML(latestNote.text)}`
-          : "No notes yet";
-        const overall = getProductOverallStatus(product);
-        return `
-          <tr>
-            <td><span class="sku">${escapeHTML(product.sku)}</span></td>
-            <td class="product">${escapeHTML(product.name)}<span class="sub">${escapeHTML(product.category || "No category")}</span></td>
-            <td><span class="status ${overall}">${getOverallStatusLabel(overall)}</span></td>
-            ${visibleChannels.map((channel) => `<td>${renderChannelCell(product, channel)}</td>`).join("")}
-            <td><div class="note-preview">${preview}</div></td>
-            <td>
-              <div class="row-actions">
-                <button class="small-button" type="button" data-note-sku="${escapeHTML(product.sku)}">Notes</button>
-                <button class="small-button" type="button" data-edit-sku="${escapeHTML(product.sku)}">Edit</button>
-              </div>
-              <button class="row-delete-button" type="button" title="Delete ${escapeHTML(product.sku)}" data-delete-sku="${escapeHTML(product.sku)}">&times;</button>
-            </td>
-          </tr>
-        `;
-      }).join("");
-      emptyState.hidden = filteredProducts.length > 0;
-      renderStats(filteredProducts);
-    }
+// ── MINI CAL (desktop) ──
+function renderMiniCal(){
+  const mc=document.getElementById('miniCal');if(!mc)return;
+  _buildMiniCal(mc);
+}
+function renderMiniCalMobile(){
+  const mc=document.getElementById('miniCalMobile');if(!mc)return;
+  _buildMiniCal(mc);
+}
+function _buildMiniCal(mc){
+  const y=currentDate.getFullYear(),m=currentDate.getMonth();
+  const first=new Date(y,m,1).getDay(),daysIn=new Date(y,m+1,0).getDate();
+  const todayStr=fmt(new Date()),selStr=fmt(currentDate);
+  const evDates=new Set(data.events.map(e=>e.date));
+  let html=`<div class="mini-cal-header">
+    <button onclick="miniCalMove(-1)">‹</button>
+    <span>${new Date(y,m).toLocaleDateString('en-US',{month:'long',year:'numeric'})}</span>
+    <button onclick="miniCalMove(1)">›</button>
+  </div><div class="mini-cal">`;
+  ['S','M','T','W','T','F','S'].forEach(n=>html+=`<div class="mini-day-name">${n}</div>`);
+  for(let i=0;i<first;i++)html+=`<div></div>`;
+  for(let d=1;d<=daysIn;d++){
+    const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const cls=['mini-day',ds===selStr?'selected':'',ds===todayStr?'today':'',evDates.has(ds)?'has-ev':''].filter(Boolean).join(' ');
+    html+=`<div class="${cls}" onclick="jumpTo('${ds}')">${d}</div>`;
+  }
+  mc.innerHTML=html+'</div>';
+}
+function miniCalMove(n){currentDate=new Date(currentDate.getFullYear(),currentDate.getMonth()+n,1);renderAll();}
+function jumpTo(ds){currentDate=dateFromStr(ds);if(isMobile())switchTab('day');renderAll();}
 
-    function renderProductChannelFields(product) {
-      productChannelFields.innerHTML = state.channels.map((channel) => {
-        const channelData = product?.channels?.[channel.id] || { status: "not_started", url: "" };
-        return `
-          <div class="channel-editor">
-            <label>
-              Website
-              <input class="field" value="${escapeHTML(channel.name)}" disabled />
-            </label>
-            <label>
-              Status
-              <select class="select" data-form-status="${escapeHTML(channel.id)}">
-                ${statuses.map((status) => `<option value="${status.id}" ${channelData.status === status.id ? "selected" : ""}>${status.label}</option>`).join("")}
-              </select>
-            </label>
-            <label>
-              Google Drive Link
-              <input class="field" data-form-url="${escapeHTML(channel.id)}" value="${escapeHTML(channelData.url)}" placeholder="https://drive.google.com/..." />
-            </label>
-          </div>
-        `;
-      }).join("");
-    }
+// ── SIDEBAR ──
+function renderSidebar(){
+  const grids=[['model','modelBtnGrid','modelBtnGridM'],['location','locationBtnGrid','locationBtnGridM']];
+  grids.forEach(([type,id1,id2])=>{
+    const arr=type==='model'?data.models:data.locations;
+    const html=arr.map(t=>`<div class="tag-btn"><span>${t}</span><span class="tb-del" onclick="removeTag('${type}','${escQ(t)}')">×</span></div>`).join('');
+    [id1,id2].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=html;});
+  });
+  // products
+  const phtml=data.products.map((p,i)=>{
+    const hasSz=p.sizes&&p.sizes.length;
+    return`<div class="tag-btn" style="flex-direction:column;align-items:flex-start;border-radius:10px;padding:6px 10px;width:100%">
+      <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+        <span class="product-name-click" onclick="openProdModal(${i})" style="font-weight:700">${p.name}</span>
+        <span class="tb-del" onclick="removeTag('product','${escQ(p.name)}')">×</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;margin-top:4px;flex-wrap:wrap">
+        <span style="font-size:10px;color:var(--sub)">Sizes:</span>
+        ${hasSz?p.sizes.map(s=>`<span class="size-badge">${s}</span>`).join(''):'<span class="size-badge empty">—</span>'}
+        <span onclick="openProdModal(${i})" style="font-size:10px;color:var(--accent);cursor:pointer;font-weight:600">✏️ edit</span>
+      </div>
+    </div>`;
+  }).join('');
+  ['productBtnGrid','productBtnGridM'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=phtml;});
+}
+function focusAdd(type){
+  // show both desktop and mobile add rows
+  ['','M'].forEach(sfx=>{
+    const row=document.getElementById(type+'AddRow'+sfx);
+    if(row){row.style.display='flex';document.getElementById(type+'AddInput'+sfx)?.focus();}
+  });
+}
+function commitAdd(type){_commitAdd(type,'');}
+function commitAddM(type){_commitAdd(type,'M');}
+function _commitAdd(type,sfx){
+  const inp=document.getElementById(type+'AddInput'+sfx),val=inp?.value.trim();if(!val)return;
+  if(type==='product'){if(!data.products.find(p=>p.name===val)){data.products.push({name:val,sizes:[]});save();renderSidebar();renderToggleGroups();}}
+  else{const arr=type==='model'?data.models:data.locations;if(!arr.includes(val)){arr.push(val);save();renderSidebar();renderToggleGroups();}}
+  if(inp)inp.value='';
+  ['','M'].forEach(s=>{const r=document.getElementById(type+'AddRow'+s);if(r)r.style.display='none';});
+}
+function removeTag(type,val){
+  if(type==='model')data.models=data.models.filter(x=>x!==val);
+  else if(type==='product')data.products=data.products.filter(x=>x.name!==val);
+  else data.locations=data.locations.filter(x=>x!==val);
+  save();renderSidebar();renderToggleGroups();
+}
 
-    function openProductForm(sku) {
-      editingSku = sku || null;
-      const product = editingSku ? state.products.find((item) => item.sku === editingSku) : null;
-      productModalTitle.textContent = editingSku ? "Edit Product" : "Add Product";
-      productSku.value = product?.sku || "";
-      productName.value = product?.name || "";
-      productCategory.value = product?.category || "";
-      productSku.disabled = !!editingSku;
-      renderProductChannelFields(product);
-      showDialog(productDialog);
-    }
+// ── PRODUCT SIZE MODAL ──
+function openProdModal(idx){editingProductIdx=idx;const p=data.products[idx];document.getElementById('prodModalTitle').textContent=`Sizes — ${p.name}`;tmpSizes=new Set(p.sizes||[]);renderSizeGrid();document.getElementById('customSizeInput').value='';document.getElementById('prodOverlay').classList.add('show');}
+function renderSizeGrid(){const all=[...new Set([...STD_SIZES,...(data.products[editingProductIdx]?.sizes||[]),...Array.from(tmpSizes)])];document.getElementById('sizeGrid').innerHTML=all.map(s=>`<div class="size-chip${tmpSizes.has(s)?' on':''}" onclick="toggleSize('${escQ(s)}')">${s}</div>`).join('');}
+function toggleSize(s){tmpSizes.has(s)?tmpSizes.delete(s):tmpSizes.add(s);renderSizeGrid();}
+function addCustomSize(){const inp=document.getElementById('customSizeInput'),val=inp.value.trim();if(!val)return;tmpSizes.add(val);inp.value='';renderSizeGrid();}
+function saveProdSizes(){if(editingProductIdx===null)return;data.products[editingProductIdx].sizes=[...tmpSizes];save();closeProdModal();renderSidebar();renderToggleGroups();renderDayView();}
+function closeProdModal(){document.getElementById('prodOverlay').classList.remove('show');}
+document.getElementById('prodOverlay').addEventListener('click',e=>{if(e.target===document.getElementById('prodOverlay'))closeProdModal();});
 
-    function saveProduct() {
-      if (!productForm.reportValidity()) return;
-      const sku = productSku.value.trim();
-      const isDuplicate = state.products.some((product) => product.sku === sku && product.sku !== editingSku);
-      if (isDuplicate) {
-        alert("This SKU already exists.");
-        return;
-      }
+// ── TOGGLE GROUPS ──
+function renderToggleGroups(){
+  document.getElementById('modelToggleGroup').innerHTML=data.models.map(t=>`<button class="toggle-btn${sel.model.has(t)?' on':''}" onclick="toggleSel('model','${escQ(t)}')">${t}</button>`).join('');
+  document.getElementById('productToggleGroup').innerHTML=data.products.map(p=>`<button class="prod-toggle-btn${sel.product.has(p.name)?' on':''}" onclick="toggleSel('product','${escQ(p.name)}')">${p.name}</button>`).join('');
+  document.getElementById('locationToggleGroup').innerHTML=data.locations.map(t=>`<button class="toggle-btn${sel.location.has(t)?' on':''}" onclick="toggleSel('location','${escQ(t)}')">${t}</button>`).join('');
+  renderProductSizeSelectors();
+}
+function renderProductSizeSelectors(){
+  const container=document.getElementById('productSizeSelectors');
+  const selected=[...sel.product,...custom.product];
+  if(!selected.length){container.innerHTML='';return;}
+  container.innerHTML=selected.map(pname=>{
+    const prod=getProdObj(pname);const availSizes=prod.sizes&&prod.sizes.length?prod.sizes:[];const curSize=evProductSizes[pname]||'';
+    if(!availSizes.length)return`<div style="font-size:11px;color:var(--sub);padding:4px 0">👗 <b>${pname}</b> — <span style="color:#bbb">No sizes</span> <span onclick="openProdModal(${data.products.findIndex(p=>p.name===pname)})" style="color:var(--accent);cursor:pointer;font-size:10px">+ Add sizes</span></div>`;
+    return`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:5px 8px;background:var(--bg);border-radius:8px">
+      <span style="font-size:11px;font-weight:700;min-width:80px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">👗 ${pname}</span>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">
+        <button class="size-chip${curSize===''?' on':''}" style="padding:3px 8px;font-size:10px" onclick="setEvSize('${escQ(pname)}','')">—</button>
+        ${availSizes.map(s=>`<button class="size-chip${curSize===s?' on':''}" style="padding:3px 8px;font-size:10px" onclick="setEvSize('${escQ(pname)}','${escQ(s)}')">${s}</button>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+function setEvSize(pname,size){evProductSizes[pname]=size;renderProductSizeSelectors();}
+function toggleSel(type,val){
+  sel[type].has(val)?sel[type].delete(val):sel[type].add(val);
+  if(type==='product'&&!sel[type].has(val))delete evProductSizes[val];
+  renderToggleGroups();
+}
 
-      pushHistory();
-      const product = editingSku
-        ? state.products.find((item) => item.sku === editingSku)
-        : { sku, channels: {} };
-      product.sku = sku;
-      product.name = productName.value.trim();
-      product.category = productCategory.value.trim();
-      state.channels.forEach((channel) => {
-        product.channels[channel.id] = {
-          status: document.querySelector(`[data-form-status="${channel.id}"]`).value,
-          url: document.querySelector(`[data-form-url="${channel.id}"]`).value.trim()
-        };
-      });
+// ── CUSTOM CHIPS ──
+function addCustomChip(type){const inp=document.getElementById(type+'CustomInput'),val=inp.value.trim();if(!val)return;if(!custom[type].includes(val))custom[type].push(val);inp.value='';renderCustomChips(type);renderToggleGroups();}
+function removeCustomChip(type,val){custom[type]=custom[type].filter(x=>x!==val);renderCustomChips(type);renderToggleGroups();}
+function renderCustomChips(type){document.getElementById(type+'CustomChips').innerHTML=custom[type].map(v=>`<div class="chip">${v}<span class="chip-x" onclick="removeCustomChip('${type}','${escQ(v)}')">×</span></div>`).join('');}
 
-      if (!editingSku) state.products.push(product);
-      saveData();
-      hideDialog(productDialog);
-      renderAll();
-    }
+// ── MODAL ──
+function openModal(ev,date,startMin){
+  editId=ev?ev.id:null;
+  document.getElementById('modalTitle').textContent=ev?'Edit Event':'New Event';
+  document.getElementById('evTitle').value=ev?ev.title:'';
+  document.getElementById('evDate').value=ev?ev.date:(date||fmt(currentDate));
+  document.getElementById('evStart').value=ev?ev.start:minToTime(startMin!=null?startMin:9*60);
+  document.getElementById('evEnd').value=ev?ev.end:minToTime(startMin!=null?startMin+60:10*60);
+  document.getElementById('evNote').value=ev?.note||'';
+  selColor=ev?Math.max(0,COLORS.indexOf(ev.color||'c0')):0;
+  sel.model=new Set(ev?.models||[]);sel.product=new Set(ev?.products||[]);sel.location=new Set(ev?.locations||[]);
+  evProductSizes=ev?.productSizes||{};
+  custom.model=[];custom.product=[];custom.location=[];
+  ['model','product','location'].forEach(t=>{renderCustomChips(t);document.getElementById(t+'CustomInput').value='';});
+  renderToggleGroups();renderColorSwatches();
+  document.getElementById('overlay').classList.add('show');
+  setTimeout(()=>document.getElementById('evTitle').focus(),100);
+}
+function renderColorSwatches(){
+  const row=document.getElementById('colorRow');row.innerHTML='';
+  COLORS.forEach((c,i)=>{const sw=document.createElement('div');sw.className='cswatch'+(i===selColor?' active':'');sw.style.background=COLOR_BG[i];sw.style.borderColor=i===selColor?'#555':'transparent';sw.onclick=()=>{selColor=i;renderColorSwatches();};row.appendChild(sw);});
+}
+function closeModal(){document.getElementById('overlay').classList.remove('show');}
+document.getElementById('cancelBtn').onclick=closeModal;
+document.getElementById('overlay').addEventListener('click',e=>{if(e.target===document.getElementById('overlay'))closeModal();});
+document.getElementById('saveBtn').onclick=()=>{
+  const title=document.getElementById('evTitle').value.trim(),date=document.getElementById('evDate').value;
+  const start=document.getElementById('evStart').value,end=document.getElementById('evEnd').value;
+  const note=document.getElementById('evNote').value.trim();
+  if(!title||!date||!start||!end)return;
+  const models=[...sel.model,...custom.model.filter(x=>!sel.model.has(x))];
+  const products=[...sel.product,...custom.product.filter(x=>!sel.product.has(x))];
+  const locations=[...sel.location,...custom.location.filter(x=>!sel.location.has(x))];
+  const ev={id:editId||Date.now(),title,date,start,end,note,color:COLORS[selColor],models,products,locations,productSizes:{...evProductSizes}};
+  if(editId){const i=data.events.findIndex(x=>x.id===editId);if(i>=0)data.events[i]=ev;}
+  else data.events.push(ev);
+  save();renderAll();closeModal();
+};
 
-    function addChannel() {
-      const name = channelNameInput.value.trim();
-      if (!name) return;
-      pushHistory();
-      let id = slugify(name);
-      let suffix = 2;
-      while (state.channels.some((channel) => channel.id === id)) {
-        id = `${slugify(name)}_${suffix}`;
-        suffix += 1;
-      }
-      state.channels.push({ id, name });
-      state.products.forEach((product) => {
-        product.channels[id] = { status: "not_started", url: "" };
-      });
-      channelNameInput.value = "";
-      saveData();
-      hideDialog(channelDialog);
-      renderAll();
-    }
-
-    function deleteProduct(sku) {
-      if (!confirm(`Delete ${sku} from this dashboard?`)) return;
-      pushHistory();
-      state.products = state.products.filter((product) => product.sku !== sku);
-      const notes = loadNotes();
-      delete notes[sku];
-      saveNotes(notes);
-      saveData();
-      renderAll();
-    }
-
-    function deleteChannel(channelId) {
-      const channel = state.channels.find((item) => item.id === channelId);
-      if (!channel || !confirm(`Remove ${channel.name} from this dashboard?`)) return;
-      pushHistory();
-      state.channels = state.channels.filter((item) => item.id !== channelId);
-      state.products.forEach((product) => {
-        delete product.channels[channelId];
-      });
-      saveData();
-      renderAll();
-    }
-
-    function updateInlineStatus(sku, channelId, status) {
-      const product = state.products.find((item) => item.sku === sku);
-      if (!product) return;
-      if (product.channels[channelId].status === status) return;
-      pushHistory();
-      product.channels[channelId].status = status;
-      saveData();
-      renderRows();
-    }
-
-    function updateInlineUrl(sku, channelId, url) {
-      const product = state.products.find((item) => item.sku === sku);
-      if (!product) return;
-      const nextUrl = url.trim();
-      if (product.channels[channelId].url === nextUrl) return;
-      pushHistory();
-      product.channels[channelId].url = nextUrl;
-      saveData();
-      renderRows();
-    }
-
-    function renderHistory() {
-      const notes = loadNotes()[activeSku] || [];
-      if (!notes.length) {
-        historyList.innerHTML = '<div class="empty">No notes have been added yet.</div>';
-        return;
-      }
-
-      historyList.innerHTML = notes.map((note) => {
-        const label = note.type === "done" ? "Resolved" : note.type === "request" ? "Request" : "Note";
-        const itemClass = note.type === "done" ? "history-item done-item" : "history-item";
-        return `
-          <article class="${itemClass}">
-            <strong>${label} - ${escapeHTML(note.author || "No author")}</strong>
-            <p>${escapeHTML(note.text)}</p>
-            <time>${new Date(note.createdAt).toLocaleString("en-US")}</time>
-          </article>
-        `;
-      }).join("");
-    }
-
-    function openNotes(sku) {
-      activeSku = sku;
-      const product = state.products.find((item) => item.sku === sku);
-      modalTitle.textContent = `${product.sku} - ${product.name}`;
-      noteText.value = "";
-      noteType.value = "request";
-      renderHistory();
-      showDialog(noteDialog);
-    }
-
-    function addNote() {
-      const text = noteText.value.trim();
-      if (!text || !activeSku) return;
-      pushHistory();
-      const notes = loadNotes();
-      notes[activeSku] = [
-        {
-          text,
-          author: noteAuthor.value.trim(),
-          type: noteType.value,
-          createdAt: new Date().toISOString()
-        },
-        ...(notes[activeSku] || [])
-      ];
-      saveNotes(notes);
-      noteText.value = "";
-      renderHistory();
-      renderRows();
-    }
-
-    function clearNotes() {
-      if (!activeSku || !confirm("Delete all notes for this SKU?")) return;
-      pushHistory();
-      const notes = loadNotes();
-      delete notes[activeSku];
-      saveNotes(notes);
-      renderHistory();
-      renderRows();
-    }
-
-    function renderAll() {
-      state = normalizeData(state);
-      renderStatusFilter();
-      renderTableHead();
-      renderChannelList();
-      renderRows();
-    }
-
-    document.addEventListener("click", (event) => {
-      const closeButton = event.target.closest("[data-close-dialog]");
-      if (closeButton) hideDialog(document.querySelector(`#${closeButton.dataset.closeDialog}`));
-
-      const noteButton = event.target.closest("[data-note-sku]");
-      if (noteButton) openNotes(noteButton.dataset.noteSku);
-
-      const editButton = event.target.closest("[data-edit-sku]");
-      if (editButton) openProductForm(editButton.dataset.editSku);
-
-      const deleteButton = event.target.closest("[data-delete-sku]");
-      if (deleteButton) deleteProduct(deleteButton.dataset.deleteSku);
-
-      const deleteChannelButton = event.target.closest("[data-delete-channel-id]");
-      if (deleteChannelButton) deleteChannel(deleteChannelButton.dataset.deleteChannelId);
-    });
-
-    rowsEl.addEventListener("change", (event) => {
-      const statusSelect = event.target.closest("[data-status-sku]");
-      if (statusSelect) {
-        updateInlineStatus(statusSelect.dataset.statusSku, statusSelect.dataset.channelId, statusSelect.value);
-      }
-    });
-
-    rowsEl.addEventListener("blur", (event) => {
-      const urlInput = event.target.closest("[data-url-sku]");
-      if (urlInput) {
-        updateInlineUrl(urlInput.dataset.urlSku, urlInput.dataset.channelId, urlInput.value);
-      }
-    }, true);
-
-    channelViewList.addEventListener("change", (event) => {
-      const checkbox = event.target.closest("[data-visible-channel-id]");
-      if (checkbox) {
-        applyChannelVisibility(checkbox.dataset.visibleChannelId, checkbox.checked);
-      }
-    });
-
-    searchInput.addEventListener("input", renderRows);
-    statusFilter.addEventListener("change", renderRows);
-    sortButton.addEventListener("click", openSortDialog);
-    applySortButton.addEventListener("click", applySort);
-    channelViewButton.addEventListener("click", openChannelViewDialog);
-    showAllChannelsButton.addEventListener("click", showAllChannels);
-    undoButton.addEventListener("click", undo);
-    redoButton.addEventListener("click", redo);
-    document.addEventListener("keydown", (event) => {
-      const key = event.key.toLowerCase();
-      const isUndo = (event.ctrlKey || event.metaKey) && key === "z" && !event.shiftKey;
-      const isRedo = (event.ctrlKey || event.metaKey) && (key === "y" || (key === "z" && event.shiftKey));
-      if (!isUndo && !isRedo) return;
-      const tagName = document.activeElement?.tagName;
-      if (tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT") return;
-      event.preventDefault();
-      if (isUndo) undo();
-      if (isRedo) redo();
-    });
-    resetButton.addEventListener("click", () => {
-      searchInput.value = "";
-      statusFilter.value = "all";
-      renderRows();
-    });
-    saveButton.addEventListener("click", saveNow);
-    addProductButton.addEventListener("click", () => openProductForm());
-    addChannelButton.addEventListener("click", () => showDialog(channelDialog));
-    saveProductButton.addEventListener("click", saveProduct);
-    saveChannelButton.addEventListener("click", addChannel);
-    addNoteButton.addEventListener("click", addNote);
-    clearProductNotes.addEventListener("click", clearNotes);
-
-    renderAll();
-    updateHistoryButtons();
-    updateSaveStatus("Loaded");
-    startRemoteSync();
-  </script>
+window.addEventListener('resize',()=>{updateDateLabel();});
+loadFromCloud();
+</script>
 </body>
 </html>
