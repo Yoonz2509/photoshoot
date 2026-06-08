@@ -80,6 +80,9 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
 .size-badge.empty{background:#d1d5db;color:#6b7280}
 .product-name-click{cursor:pointer}
 .product-name-click:hover{color:var(--accent);text-decoration:underline}
+.product-title-wrap{display:flex;align-items:center;gap:6px;min-width:0}
+.product-color-dot{width:12px;height:12px;border-radius:50%;border:1px solid rgba(0,0,0,.12);background:var(--product-color,#d1d5db);flex-shrink:0}
+.product-color-text{font-size:10px;color:var(--sub);font-weight:600}
 .add-inline{display:flex;gap:5px;margin-top:3px}
 .add-inline input{flex:1;border:1px solid var(--border);border-radius:7px;padding:5px 9px;font-size:12px;outline:none}
 .add-inline input:focus{border-color:var(--accent)}
@@ -166,6 +169,9 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
 .custom-size-row input{flex:1;border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;outline:none}
 .custom-size-row input:focus{border-color:var(--accent)}
 .custom-size-row button{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 11px;font-size:12px;cursor:pointer;font-weight:700}
+.product-color-field{margin:4px 0 12px}
+.product-color-field input{width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;outline:none;font-family:inherit}
+.product-color-field input:focus{border-color:var(--accent)}
 .prod-modal-btns{display:flex;gap:8px}
 .prod-modal-btns button{flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none}
 
@@ -420,6 +426,10 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
 <div class="overlay" id="prodOverlay">
   <div class="prod-modal">
     <h3 id="prodModalTitle">Edit Product</h3>
+    <div class="product-color-field">
+      <div style="font-size:11px;color:var(--sub);margin-bottom:6px">Product color:</div>
+      <input id="productColorInput" placeholder="e.g. Ivory, Black, #f8fafc">
+    </div>
     <div style="font-size:11px;color:var(--sub);margin-bottom:10px">Select available sizes:</div>
     <div class="size-grid" id="sizeGrid"></div>
     <div class="custom-size-row">
@@ -442,7 +452,7 @@ const COLOR_BG=['#e0e7ff','#fce7f3','#d1fae5','#fef3c7','#fee2e2','#e0f2fe','#f3
 const STD_SIZES=['XS','S','M','L','XL','XXL','Free','34','36','38','40','42','44'];
 const PX_PER_MIN=64/60,SNAP=5;
 
-let data={events:[],models:['Jia Kim','Suhyeon Park','Nayeon Lee'],products:[{name:'White Blouse A',sizes:['S','M']},{name:'Denim B',sizes:['M','L']},{name:'Summer Dress C',sizes:['Free']}],locations:['Studio 1','Rooftop','Cafe Set']};
+let data={events:[],models:['Jia Kim','Suhyeon Park','Nayeon Lee'],products:[{name:'White Blouse A',sizes:['S','M'],color:'White'},{name:'Denim B',sizes:['M','L'],color:'Blue'},{name:'Summer Dress C',sizes:['Free'],color:'Yellow'}],locations:['Studio 1','Rooftop','Cafe Set']};
 let currentDate=new Date();currentDate.setHours(0,0,0,0);
 let editId=null,selColor=0,activeTab='day';
 let sel={model:new Set(),product:new Set(),location:new Set()};
@@ -459,8 +469,14 @@ const minToTime=m=>{m=Math.max(0,Math.min(1439,m));return`${String(Math.floor(m/
 const timeToMin=t=>{if(!t)return 0;const[h,m]=t.split(':').map(Number);return h*60+(m||0);};
 const snapMin=m=>Math.round(m/SNAP)*SNAP;
 const escQ=s=>s.replace(/'/g,"\\'");
-const getProdObj=name=>data.products.find(p=>p.name===name)||{name,sizes:[]};
+const getProdObj=name=>data.products.find(p=>p.name===name)||{name,sizes:[],color:''};
 const isMobile=()=>window.innerWidth<=768;
+function normalizeProducts(){
+  if(data.products&&data.products.length&&typeof data.products[0]==='string')
+    data.products=data.products.map(p=>({name:p,sizes:[],color:''}));
+  if(Array.isArray(data.products))
+    data.products=data.products.map(p=>({name:p.name,sizes:p.sizes||[],color:p.color||''}));
+}
 
 // ── CLOUD ──
 async function loadFromCloud(){
@@ -470,8 +486,7 @@ async function loadFromCloud(){
     const json=await res.json();
     if(json.record&&json.record.events){
       data=json.record;
-      if(data.products&&data.products.length&&typeof data.products[0]==='string')
-        data.products=data.products.map(p=>({name:p,sizes:[]}));
+      normalizeProducts();
     }
   }catch(e){console.warn('Load failed',e);}
   document.getElementById('loadingScreen').style.display='none';
@@ -754,11 +769,17 @@ function renderSidebar(){
   // products
   const phtml=data.products.map((p,i)=>{
     const hasSz=p.sizes&&p.sizes.length;
+    const color=p.color||'';
+    const colorStyle=color?`--product-color:${color}`:'';
     return`<div class="tag-btn" style="flex-direction:column;align-items:flex-start;border-radius:10px;padding:6px 10px;width:100%">
       <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
-        <span class="product-name-click" onclick="openProdModal(${i})" style="font-weight:700">${p.name}</span>
+        <span class="product-title-wrap product-name-click" onclick="openProdModal(${i})" style="font-weight:700">
+          <span class="product-color-dot" style="${colorStyle}"></span>
+          <span>${p.name}</span>
+        </span>
         <span class="tb-del" onclick="removeTag('product','${escQ(p.name)}')">×</span>
       </div>
+      <div class="product-color-text" style="margin-top:3px">Color: ${color||'none'}</div>
       <div style="display:flex;align-items:center;gap:5px;margin-top:4px;flex-wrap:wrap">
         <span style="font-size:10px;color:var(--sub)">Sizes:</span>
         ${hasSz?p.sizes.map(s=>`<span class="size-badge">${s}</span>`).join(''):'<span class="size-badge empty">—</span>'}
@@ -779,7 +800,7 @@ function commitAdd(type){_commitAdd(type,'');}
 function commitAddM(type){_commitAdd(type,'M');}
 function _commitAdd(type,sfx){
   const inp=document.getElementById(type+'AddInput'+sfx),val=inp?.value.trim();if(!val)return;
-  if(type==='product'){if(!data.products.find(p=>p.name===val)){data.products.push({name:val,sizes:[]});save();renderSidebar();renderToggleGroups();}}
+  if(type==='product'){if(!data.products.find(p=>p.name===val)){data.products.push({name:val,sizes:[],color:''});save();renderSidebar();renderToggleGroups();}}
   else{const arr=type==='model'?data.models:data.locations;if(!arr.includes(val)){arr.push(val);save();renderSidebar();renderToggleGroups();}}
   if(inp)inp.value='';
   ['','M'].forEach(s=>{const r=document.getElementById(type+'AddRow'+s);if(r)r.style.display='none';});
@@ -792,18 +813,22 @@ function removeTag(type,val){
 }
 
 // ── PRODUCT SIZE MODAL ──
-function openProdModal(idx){editingProductIdx=idx;const p=data.products[idx];document.getElementById('prodModalTitle').textContent=`Sizes — ${p.name}`;tmpSizes=new Set(p.sizes||[]);renderSizeGrid();document.getElementById('customSizeInput').value='';document.getElementById('prodOverlay').classList.add('show');}
+function openProdModal(idx){editingProductIdx=idx;const p=data.products[idx];document.getElementById('prodModalTitle').textContent=`Product — ${p.name}`;tmpSizes=new Set(p.sizes||[]);renderSizeGrid();document.getElementById('productColorInput').value=p.color||'';document.getElementById('customSizeInput').value='';document.getElementById('prodOverlay').classList.add('show');}
 function renderSizeGrid(){const all=[...new Set([...STD_SIZES,...(data.products[editingProductIdx]?.sizes||[]),...Array.from(tmpSizes)])];document.getElementById('sizeGrid').innerHTML=all.map(s=>`<div class="size-chip${tmpSizes.has(s)?' on':''}" onclick="toggleSize('${escQ(s)}')">${s}</div>`).join('');}
 function toggleSize(s){tmpSizes.has(s)?tmpSizes.delete(s):tmpSizes.add(s);renderSizeGrid();}
 function addCustomSize(){const inp=document.getElementById('customSizeInput'),val=inp.value.trim();if(!val)return;tmpSizes.add(val);inp.value='';renderSizeGrid();}
-function saveProdSizes(){if(editingProductIdx===null)return;data.products[editingProductIdx].sizes=[...tmpSizes];save();closeProdModal();renderSidebar();renderToggleGroups();renderDayView();}
+function saveProdSizes(){if(editingProductIdx===null)return;data.products[editingProductIdx].sizes=[...tmpSizes];data.products[editingProductIdx].color=document.getElementById('productColorInput').value.trim();save();closeProdModal();renderSidebar();renderToggleGroups();renderDayView();}
 function closeProdModal(){document.getElementById('prodOverlay').classList.remove('show');}
 document.getElementById('prodOverlay').addEventListener('click',e=>{if(e.target===document.getElementById('prodOverlay'))closeProdModal();});
 
 // ── TOGGLE GROUPS ──
 function renderToggleGroups(){
   document.getElementById('modelToggleGroup').innerHTML=data.models.map(t=>`<button class="toggle-btn${sel.model.has(t)?' on':''}" onclick="toggleSel('model','${escQ(t)}')">${t}</button>`).join('');
-  document.getElementById('productToggleGroup').innerHTML=data.products.map(p=>`<button class="prod-toggle-btn${sel.product.has(p.name)?' on':''}" onclick="toggleSel('product','${escQ(p.name)}')">${p.name}</button>`).join('');
+  document.getElementById('productToggleGroup').innerHTML=data.products.map(p=>{
+    const color=p.color||'';
+    const colorStyle=color?`--product-color:${color}`:'';
+    return`<button class="prod-toggle-btn${sel.product.has(p.name)?' on':''}" onclick="toggleSel('product','${escQ(p.name)}')" title="${color?`Color: ${color}`:''}"><span class="product-color-dot" style="${colorStyle}"></span>${p.name}</button>`;
+  }).join('');
   document.getElementById('locationToggleGroup').innerHTML=data.locations.map(t=>`<button class="toggle-btn${sel.location.has(t)?' on':''}" onclick="toggleSel('location','${escQ(t)}')">${t}</button>`).join('');
   renderProductSizeSelectors();
 }
