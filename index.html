@@ -26,6 +26,10 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
 .sync-status.saved{background:#d1fae5;color:#065f46}
 .sync-status.saving{background:#fef3c7;color:#92400e}
 .sync-status.error{background:#fee2e2;color:#991b1b}
+.zoom-controls{display:flex;align-items:center;gap:4px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:3px}
+.zoom-controls button{width:24px;height:24px;border:none;border-radius:6px;background:transparent;color:var(--sub);font-size:15px;font-weight:800;cursor:pointer;line-height:1}
+.zoom-controls button:hover{background:var(--surface);color:var(--accent)}
+.zoom-label{min-width:38px;text-align:center;font-size:10px;font-weight:800;color:var(--sub)}
 .btn{border:none;border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
 .btn-accent{background:var(--accent);color:#fff}
 .btn:hover{opacity:.82}
@@ -50,17 +54,22 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
 .now-line::before{content:'';position:absolute;left:-5px;top:-4px;width:10px;height:10px;border-radius:50%;background:#ef4444}
 
 /* ── EVENTS ── */
-.ev{position:absolute;left:4px;right:4px;border-radius:8px;padding:6px 9px;font-size:12px;cursor:pointer;z-index:5;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden;user-select:none;transition:box-shadow .15s}
+.ev{position:absolute;left:4px;right:4px;border-radius:8px;padding:6px 9px;font-size:12px;cursor:pointer;z-index:5;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden;user-select:none;transition:box-shadow .15s;height:auto;min-height:18px}
 .ev:hover{box-shadow:0 5px 16px rgba(0,0,0,.16)}
 .ev.dragging{opacity:.75;z-index:50;cursor:grabbing}
-.ev-title{font-weight:700;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ev-time{font-size:10px;opacity:.75;margin-top:1px}
+.ev.resizing{opacity:.9;z-index:55}
+.ev-title{font-weight:700;font-size:clamp(11px,calc(11px + var(--event-scale,1)*1px),14px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev-time{font-size:clamp(9px,calc(9px + var(--event-scale,1)*1px),12px);opacity:.75;margin-top:1px}
 .ev-meta{margin-top:3px;display:flex;flex-direction:column;gap:2px}
-.ev-tag{display:inline-flex;align-items:center;gap:2px;font-size:10px;font-weight:500;padding:1px 5px;border-radius:20px;background:rgba(255,255,255,.55);width:fit-content;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ev-tag{display:inline-flex;align-items:center;gap:2px;font-size:clamp(9px,calc(9px + var(--event-scale,1)*.8px),11px);font-weight:500;padding:1px 5px;border-radius:20px;background:rgba(255,255,255,.55);width:fit-content;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ev-compact .ev-meta{display:none}
+.ev-compact .ev-title{font-size:11px}
+.ev-compact .ev-time{font-size:9px}
 .ev-del{position:absolute;top:4px;right:6px;font-size:14px;cursor:pointer;opacity:0;transition:opacity .15s;background:rgba(255,255,255,.65);border-radius:50%;width:17px;height:17px;display:flex;align-items:center;justify-content:center;line-height:1;z-index:10}
 .ev:hover .ev-del{opacity:1}
-.ev-resize{position:absolute;bottom:0;left:0;right:0;height:8px;cursor:s-resize;z-index:10;display:flex;align-items:center;justify-content:center}
-.ev-resize::after{content:'';width:24px;height:2px;border-radius:2px;background:rgba(0,0,0,.2)}
+.ev-resize{position:absolute;bottom:0;left:0;right:0;height:12px;cursor:ns-resize;z-index:10;display:flex;align-items:center;justify-content:center;touch-action:none}
+.ev-resize::after{content:'';width:30px;height:3px;border-radius:2px;background:rgba(0,0,0,.25)}
+.ev-resize:hover::after{background:rgba(99,102,241,.75)}
 .c0{background:#e0e7ff;color:#3730a3}.c1{background:#fce7f3;color:#9d174d}
 .c2{background:#d1fae5;color:#065f46}.c3{background:#fef3c7;color:#92400e}
 .c4{background:#fee2e2;color:#991b1b}.c5{background:#e0f2fe;color:#075985}
@@ -241,6 +250,11 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
     <button class="btn" style="background:var(--border);color:var(--sub);padding:5px 10px" id="todayBtn">Today</button>
   </div>
   <div class="header-right">
+    <div class="zoom-controls" title="Time zoom">
+      <button onclick="changeZoom(-1)" aria-label="Zoom out">-</button>
+      <span class="zoom-label" id="zoomLabel">100%</span>
+      <button onclick="changeZoom(1)" aria-label="Zoom in">+</button>
+    </div>
     <div class="sync-status saved" id="syncStatus">✓ Saved</div>
     <button class="btn btn-accent desktop-add-btn" id="openAdd">+ Add</button>
   </div>
@@ -450,7 +464,10 @@ const API_URL=`https://api.jsonbin.io/v3/b/${BIN_ID}`;
 const COLORS=['c0','c1','c2','c3','c4','c5','c6'];
 const COLOR_BG=['#e0e7ff','#fce7f3','#d1fae5','#fef3c7','#fee2e2','#e0f2fe','#f3e8ff'];
 const STD_SIZES=['XS','S','M','L','XL','XXL','Free','34','36','38','40','42','44'];
-const PX_PER_MIN=64/60,SNAP=5;
+const BASE_HOUR_HEIGHT=64,SNAP=5;
+let timeZoom=Number(localStorage.getItem('shoot_time_zoom')||1);
+timeZoom=Math.max(.75,Math.min(2.5,timeZoom));
+const pxPerMin=()=>BASE_HOUR_HEIGHT*timeZoom/60;
 
 let data={events:[],models:['Jia Kim','Suhyeon Park','Nayeon Lee'],products:[{name:'White Blouse A',sizes:['S','M'],color:'White'},{name:'Denim B',sizes:['M','L'],color:'Blue'},{name:'Summer Dress C',sizes:['Free'],color:'Yellow'}],locations:['Studio 1','Rooftop','Cafe Set']};
 let currentDate=new Date();currentDate.setHours(0,0,0,0);
@@ -529,6 +546,27 @@ document.getElementById('nextDay').onclick=()=>{currentDate.setDate(currentDate.
 document.getElementById('todayBtn').onclick=()=>{currentDate=new Date();currentDate.setHours(0,0,0,0);renderAll();};
 document.getElementById('openAdd').onclick=()=>openModal(null);
 document.getElementById('fabAdd').onclick=()=>openModal(null);
+document.getElementById('dayView').addEventListener('wheel',e=>{
+  if(!e.ctrlKey)return;
+  e.preventDefault();
+  changeZoom(e.deltaY<0?1:-1,e.clientY);
+},{passive:false});
+
+function updateZoomLabel(){
+  const el=document.getElementById('zoomLabel');
+  if(el)el.textContent=Math.round(timeZoom*100)+'%';
+}
+function changeZoom(dir,anchorY){
+  const dv=document.getElementById('dayView');
+  const before=pxPerMin();
+  const rect=dv.getBoundingClientRect();
+  const focusMin=(dv.scrollTop+((anchorY??(rect.top+rect.height/2))-rect.top))/before;
+  timeZoom=Math.max(.75,Math.min(2.5,Math.round((timeZoom+dir*.25)*4)/4));
+  localStorage.setItem('shoot_time_zoom',timeZoom);
+  renderDayView();
+  const after=pxPerMin();
+  dv.scrollTop=Math.max(0,focusMin*after-((anchorY??(rect.top+rect.height/2))-rect.top));
+}
 
 function renderAll(){updateDateLabel();renderDayView();renderSidebar();renderMiniCal();if(activeTab==='list')renderList();if(activeTab==='manage'){renderMiniCalMobile();}}
 
@@ -543,31 +581,34 @@ function updateDateLabel(){
 function renderDayView(){
   const axis=document.getElementById('timeAxis'),col=document.getElementById('scheduleCol');
   axis.innerHTML='';col.innerHTML='';
-  const totalPx=24*64;
+  updateZoomLabel();
+  const ppm=pxPerMin();
+  const totalPx=24*60*ppm;
   col.style.height=totalPx+'px';axis.style.height=totalPx+'px';axis.style.position='relative';
   for(let h=0;h<=24;h++){
-    const y=h*64;
+    const y=h*60*ppm;
     const gl=document.createElement('div');gl.className='grid-line';gl.style.top=y+'px';col.appendChild(gl);
     if(h<24){
       const lbl=document.createElement('div');lbl.className='time-tick';lbl.style.top=y+'px';
       lbl.textContent=`${String(h).padStart(2,'0')}:00`;axis.appendChild(lbl);
-      const gl2=document.createElement('div');gl2.className='grid-line minor';gl2.style.top=(y+32)+'px';col.appendChild(gl2);
+      const gl2=document.createElement('div');gl2.className='grid-line minor';gl2.style.top=(y+30*ppm)+'px';col.appendChild(gl2);
     }
   }
   const now=new Date();
   if(fmt(now)===fmt(currentDate)){
     const nl=document.createElement('div');nl.className='now-line';
-    nl.style.top=((now.getHours()*60+now.getMinutes())*PX_PER_MIN)+'px';col.appendChild(nl);
+    nl.style.top=((now.getHours()*60+now.getMinutes())*ppm)+'px';col.appendChild(nl);
   }
   col.addEventListener('mousedown',colMouseDown);
   col.addEventListener('touchend',colTouchEnd,{passive:true});
   const todayStr=fmt(currentDate);
   placeEvents(data.events.filter(e=>e.date===todayStr).sort((a,b)=>a.start.localeCompare(b.start)),col);
   const dv=document.getElementById('dayView');
-  if(dv.scrollTop===0)dv.scrollTop=8*64;
+  if(dv.scrollTop===0)dv.scrollTop=8*60*ppm;
 }
 
 function placeEvents(dayEvs,col){
+  const ppm=pxPerMin();
   const placed=[];
   dayEvs.forEach(ev=>{
     const s=timeToMin(ev.start),e=Math.max(timeToMin(ev.end||ev.start)+5,s+5);
@@ -576,12 +617,14 @@ function placeEvents(dayEvs,col){
   });
   placed.forEach(({ev,s,e,col:c})=>{
     const totalCols=placed.filter(p=>p.s<e&&p.e>s).length||1;
-    const topPx=s*PX_PER_MIN,htPx=Math.max((e-s)*PX_PER_MIN,22);
+    const topPx=s*ppm,htPx=Math.max((e-s)*ppm,18);
+    const eventScale=Math.max(.8,Math.min(1.8,htPx/48));
     const wPct=96/totalCols,lPct=2+c*wPct,rPct=2+(totalCols-c-1)*wPct;
     const el=document.createElement('div');
-    el.className=`ev ${ev.color||'c0'}`;
+    el.className=`ev ${ev.color||'c0'}${htPx<38?' ev-compact':''}`;
     el.style.top=topPx+'px';el.style.height=htPx+'px';
     el.style.left=lPct+'%';el.style.right=rPct+'%';el.style.width='auto';
+    el.style.setProperty('--event-scale',eventScale);
     const prodTags=(ev.products||[]).map(pname=>{
       const sz=ev.productSizes&&ev.productSizes[pname]?` [${ev.productSizes[pname]}]`:'';
       return`👗 ${pname}${sz}`;
@@ -596,6 +639,7 @@ function placeEvents(dayEvs,col){
       ${htPx>40?`<div class="ev-meta">${tags.map(t=>`<span class="ev-tag">${t}</span>`).join('')}</div>`:''}
       <div class="ev-resize"></div>`;
     el.addEventListener('mousedown',e=>{if(e.target.classList.contains('ev-resize')||e.target.classList.contains('ev-del'))return;startDrag(e,ev,el);});
+    el.querySelector('.ev-resize').addEventListener('mousedown',e=>{e.stopPropagation();startResize(e,ev,el);});
     el.addEventListener('dblclick',e=>{e.stopPropagation();dragState=null;openModal(ev);});
     // MOBILE: tap = detail popup, long press = drag
     el.addEventListener('touchstart',e=>{
@@ -620,8 +664,8 @@ function placeEvents(dayEvs,col){
   });
 }
 
-function colMouseDown(e){if(e.target!==e.currentTarget)return;const rect=e.currentTarget.getBoundingClientRect();openModal(null,fmt(currentDate),snapMin((e.clientY-rect.top)/PX_PER_MIN));}
-function colTouchEnd(e){if(e.target!==e.currentTarget)return;const rect=e.currentTarget.getBoundingClientRect();const t=e.changedTouches[0];openModal(null,fmt(currentDate),snapMin((t.clientY-rect.top)/PX_PER_MIN));}
+function colMouseDown(e){if(e.target!==e.currentTarget)return;const rect=e.currentTarget.getBoundingClientRect();openModal(null,fmt(currentDate),snapMin((e.clientY-rect.top)/pxPerMin()));}
+function colTouchEnd(e){if(e.target!==e.currentTarget)return;const rect=e.currentTarget.getBoundingClientRect();const t=e.changedTouches[0];openModal(null,fmt(currentDate),snapMin((t.clientY-rect.top)/pxPerMin()));}
 
 // ── MOUSE DRAG ──
 function startDrag(e,ev,el){
@@ -629,26 +673,28 @@ function startDrag(e,ev,el){
   const rect=document.getElementById('scheduleCol').getBoundingClientRect();
   const startY=e.clientY;let moved=false;
   function onMove(e2){
-    if(!moved&&Math.abs(e2.clientY-startY)>5){moved=true;dragState={ev,el,offsetY:startY-(rect.top+timeToMin(ev.start)*PX_PER_MIN),durMin:timeToMin(ev.end)-timeToMin(ev.start),rect};el.classList.add('dragging');showTooltip(ev.start,ev.end);}
+    if(!moved&&Math.abs(e2.clientY-startY)>5){const ppm=pxPerMin();moved=true;dragState={ev,el,offsetY:startY-(rect.top+timeToMin(ev.start)*ppm),durMin:timeToMin(ev.end)-timeToMin(ev.start),rect};el.classList.add('dragging');showTooltip(ev.start,ev.end);}
     if(moved)onDragMove(e2);
   }
   function onUp(e2){document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);if(moved)onDragEnd(e2);}
   document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp);
 }
-function onDragMove(e){if(!dragState)return;const{el,offsetY,durMin,rect}=dragState;const snapped=Math.max(0,Math.min(1439-durMin,snapMin((e.clientY-rect.top-offsetY)/PX_PER_MIN)));el.style.top=(snapped*PX_PER_MIN)+'px';updateTooltip(minToTime(snapped),minToTime(snapped+durMin));tooltip.style.left=(e.clientX+14)+'px';tooltip.style.top=(e.clientY-10)+'px';}
-function onDragEnd(e){if(!dragState)return;const{ev,offsetY,durMin,rect}=dragState;const snapped=Math.max(0,Math.min(1439-durMin,snapMin((e.clientY-rect.top-offsetY)/PX_PER_MIN)));const idx=data.events.findIndex(x=>x.id===ev.id);if(idx>=0){data.events[idx].start=minToTime(snapped);data.events[idx].end=minToTime(Math.min(1440,snapped+durMin));}save();document.removeEventListener('mousemove',onDragMove);document.removeEventListener('mouseup',onDragEnd);dragState=null;hideTooltip();renderDayView();}
+function onDragMove(e){if(!dragState)return;const ppm=pxPerMin();const{el,offsetY,durMin,rect}=dragState;const snapped=Math.max(0,Math.min(1439-durMin,snapMin((e.clientY-rect.top-offsetY)/ppm)));el.style.top=(snapped*ppm)+'px';updateTooltip(minToTime(snapped),minToTime(snapped+durMin));tooltip.style.left=(e.clientX+14)+'px';tooltip.style.top=(e.clientY-10)+'px';}
+function onDragEnd(e){if(!dragState)return;const ppm=pxPerMin();const{ev,offsetY,durMin,rect}=dragState;const snapped=Math.max(0,Math.min(1439-durMin,snapMin((e.clientY-rect.top-offsetY)/ppm)));const idx=data.events.findIndex(x=>x.id===ev.id);if(idx>=0){data.events[idx].start=minToTime(snapped);data.events[idx].end=minToTime(Math.min(1440,snapped+durMin));}save();document.removeEventListener('mousemove',onDragMove);document.removeEventListener('mouseup',onDragEnd);dragState=null;hideTooltip();renderDayView();}
 
 // ── TOUCH DRAG ──
 function startTouchDrag(e,ev,el,onEnd){
   const rect=document.getElementById('scheduleCol').getBoundingClientRect();
+  const ppm=pxPerMin();
   const t0=e.touches[0];const startY=t0.clientY;
-  let offsetY=startY-(rect.top+timeToMin(ev.start)*PX_PER_MIN);
+  let offsetY=startY-(rect.top+timeToMin(ev.start)*ppm);
   el.classList.add('dragging');showTooltip(ev.start,ev.end);
   function onMove(e2){
     e2.preventDefault();
     const t=e2.touches[0];
-    const snapped=Math.max(0,Math.min(1439-(timeToMin(ev.end)-timeToMin(ev.start)),snapMin((t.clientY-rect.top-offsetY)/PX_PER_MIN)));
-    el.style.top=(snapped*PX_PER_MIN)+'px';
+    const ppm=pxPerMin();
+    const snapped=Math.max(0,Math.min(1439-(timeToMin(ev.end)-timeToMin(ev.start)),snapMin((t.clientY-rect.top-offsetY)/ppm)));
+    el.style.top=(snapped*ppm)+'px';
     updateTooltip(minToTime(snapped),minToTime(snapped+(timeToMin(ev.end)-timeToMin(ev.start))));
     tooltip.style.left=(t.clientX+14)+'px';tooltip.style.top=(t.clientY-40)+'px';
   }
@@ -656,7 +702,7 @@ function startTouchDrag(e,ev,el,onEnd){
     el.removeEventListener('touchmove',onMove);el.removeEventListener('touchend',onEndTouch);
     const t=e2.changedTouches[0];
     const durMin=timeToMin(ev.end)-timeToMin(ev.start);
-    const snapped=Math.max(0,Math.min(1439-durMin,snapMin((t.clientY-rect.top-offsetY)/PX_PER_MIN)));
+    const snapped=Math.max(0,Math.min(1439-durMin,snapMin((t.clientY-rect.top-offsetY)/pxPerMin())));
     const idx=data.events.findIndex(x=>x.id===ev.id);
     if(idx>=0){data.events[idx].start=minToTime(snapped);data.events[idx].end=minToTime(Math.min(1440,snapped+durMin));}
     save();hideTooltip();el.classList.remove('dragging');if(onEnd)onEnd();renderDayView();
@@ -671,16 +717,18 @@ function startTouchResize(e,ev,el){
   const rect=document.getElementById('scheduleCol').getBoundingClientRect();
   const startMin=timeToMin(ev.start);
   function onMove(e2){
+    e2.preventDefault();
+    const ppm=pxPerMin();
     const t=e2.touches[0];
-    const snapped=Math.max(startMin+SNAP,snapMin((t.clientY-rect.top)/PX_PER_MIN));
-    el.style.height=Math.max(SNAP*PX_PER_MIN,(snapped-startMin)*PX_PER_MIN)+'px';
+    const snapped=Math.max(startMin+SNAP,snapMin((t.clientY-rect.top)/ppm));
+    el.style.height=Math.max(SNAP*ppm,(snapped-startMin)*ppm)+'px';
     showTooltip(minToTime(startMin),minToTime(snapped));
     tooltip.style.left=(t.clientX+14)+'px';tooltip.style.top=(t.clientY-40)+'px';
   }
   function onEnd(e2){
     el.removeEventListener('touchmove',onMove);el.removeEventListener('touchend',onEnd);
     const t=e2.changedTouches[0];
-    const snapped=Math.max(startMin+SNAP,snapMin((t.clientY-rect.top)/PX_PER_MIN));
+    const snapped=Math.max(startMin+SNAP,snapMin((t.clientY-rect.top)/pxPerMin()));
     const idx=data.events.findIndex(x=>x.id===ev.id);
     if(idx>=0)data.events[idx].end=minToTime(Math.min(1440,snapped));
     save();hideTooltip();renderDayView();
@@ -691,8 +739,8 @@ function startTouchResize(e,ev,el){
 
 // ── MOUSE RESIZE ──
 function startResize(e,ev,el){e.preventDefault();const rect=document.getElementById('scheduleCol').getBoundingClientRect();resizeState={ev,el,rect,startMin:timeToMin(ev.start)};el.classList.add('resizing');showTooltip(ev.start,ev.end);document.addEventListener('mousemove',onResizeMove);document.addEventListener('mouseup',onResizeEnd);}
-function onResizeMove(e){if(!resizeState)return;const{el,rect,startMin}=resizeState;const snapped=Math.max(startMin+SNAP,snapMin((e.clientY-rect.top)/PX_PER_MIN));el.style.height=Math.max(SNAP*PX_PER_MIN,(snapped-startMin)*PX_PER_MIN)+'px';updateTooltip(minToTime(startMin),minToTime(snapped));tooltip.style.left=(e.clientX+14)+'px';tooltip.style.top=(e.clientY-10)+'px';}
-function onResizeEnd(e){if(!resizeState)return;const{ev,rect,startMin}=resizeState;const snapped=Math.max(startMin+SNAP,snapMin((e.clientY-rect.top)/PX_PER_MIN));const idx=data.events.findIndex(x=>x.id===ev.id);if(idx>=0)data.events[idx].end=minToTime(Math.min(1440,snapped));save();document.removeEventListener('mousemove',onResizeMove);document.removeEventListener('mouseup',onResizeEnd);resizeState=null;hideTooltip();renderDayView();}
+function onResizeMove(e){if(!resizeState)return;const ppm=pxPerMin();const{el,rect,startMin}=resizeState;const snapped=Math.max(startMin+SNAP,snapMin((e.clientY-rect.top)/ppm));el.style.height=Math.max(SNAP*ppm,(snapped-startMin)*ppm)+'px';updateTooltip(minToTime(startMin),minToTime(snapped));tooltip.style.left=(e.clientX+14)+'px';tooltip.style.top=(e.clientY-10)+'px';}
+function onResizeEnd(e){if(!resizeState)return;const ppm=pxPerMin();const{ev,rect,startMin}=resizeState;const snapped=Math.max(startMin+SNAP,snapMin((e.clientY-rect.top)/ppm));const idx=data.events.findIndex(x=>x.id===ev.id);if(idx>=0)data.events[idx].end=minToTime(Math.min(1440,snapped));save();document.removeEventListener('mousemove',onResizeMove);document.removeEventListener('mouseup',onResizeEnd);resizeState=null;hideTooltip();renderDayView();}
 
 function showTooltip(s,e){tooltip.style.display='block';tooltip.textContent=`${s} – ${e}`;}
 function updateTooltip(s,e){tooltip.textContent=`${s} – ${e}`;}
