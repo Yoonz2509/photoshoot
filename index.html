@@ -469,7 +469,7 @@ const STD_SIZES=['XS','S','M','L','XL','XXL','Free','34','36','38','40','42','44
 const BASE_HOUR_HEIGHT=64,SNAP=5;
 let timeZoom=Number(localStorage.getItem('shoot_time_zoom')||1);
 timeZoom=Math.max(.75,Math.min(2.5,timeZoom));
-const pxPerMin=()=>BASE_HOUR_HEIGHT*timeZoom/60;
+const pxPerMin=()=>BASE_HOUR_HEIGHT*Math.pow(timeZoom,2.25)/60;
 
 let data={events:[],models:['Jia Kim','Suhyeon Park','Nayeon Lee'],products:[{name:'White Blouse A',sizes:['S','M'],color:'White'},{name:'Denim B',sizes:['M','L'],color:'Blue'},{name:'Summer Dress C',sizes:['Free'],color:'Yellow'}],locations:['Studio 1','Rooftop','Cafe Set']};
 let currentDate=new Date();currentDate.setHours(0,0,0,0);
@@ -644,14 +644,11 @@ function placeEvents(dayEvs,col){
     g.forEach(item=>item.cols=maxCols);
   });
   const placed=items;
-  let lastFullWidthBottom=0;
   placed.forEach(({ev,s,e,col:c,cols})=>{
     const totalCols=cols||1;
     const tagCount=(ev.models?.length?1:0)+(ev.products?.length||0)+(ev.locations?.length?1:0)+(ev.note?1:0);
-    const zoomMinHeight=timeZoom>=2?56+tagCount*18:timeZoom>=1.5?40+tagCount*12:18;
-    const baseTopPx=s*ppm,htPx=Math.max((e-s)*ppm,zoomMinHeight);
-    const topPx=totalCols===1?Math.max(baseTopPx,lastFullWidthBottom):baseTopPx;
-    if(totalCols===1)lastFullWidthBottom=topPx+htPx+8;
+    const zoomMinHeight=timeZoom>=2?48+tagCount*12:timeZoom>=1.5?32+tagCount*8:18;
+    const topPx=s*ppm,htPx=Math.max((e-s)*ppm,zoomMinHeight);
     const showMeta=htPx>=48||timeZoom>=1.75;
     const eventScale=Math.max(.8,Math.min(1.8,htPx/48));
     const wPct=96/totalCols,lPct=2+c*wPct,rPct=2+(totalCols-c-1)*wPct;
