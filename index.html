@@ -469,7 +469,7 @@ const STD_SIZES=['XS','S','M','L','XL','XXL','Free','34','36','38','40','42','44
 const BASE_HOUR_HEIGHT=64,SNAP=5;
 let timeZoom=Number(localStorage.getItem('shoot_time_zoom')||1);
 timeZoom=Math.max(.75,Math.min(2.5,timeZoom));
-const pxPerMin=()=>BASE_HOUR_HEIGHT*Math.pow(timeZoom,2.25)/60;
+const pxPerMin=()=>BASE_HOUR_HEIGHT*Math.pow(timeZoom,2.75)/60;
 
 let data={events:[],models:['Jia Kim','Suhyeon Park','Nayeon Lee'],products:[{name:'White Blouse A',sizes:['S','M'],color:'White'},{name:'Denim B',sizes:['M','L'],color:'Blue'},{name:'Summer Dress C',sizes:['Free'],color:'Yellow'}],locations:['Studio 1','Rooftop','Cafe Set']};
 let currentDate=new Date();currentDate.setHours(0,0,0,0);
