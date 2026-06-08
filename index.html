@@ -54,14 +54,15 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
 .now-line::before{content:'';position:absolute;left:-5px;top:-4px;width:10px;height:10px;border-radius:50%;background:#ef4444}
 
 /* ── EVENTS ── */
-.ev{position:absolute;left:4px;right:4px;border-radius:8px;padding:6px 9px;font-size:12px;cursor:pointer;z-index:5;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden;user-select:none;transition:box-shadow .15s;height:auto;min-height:18px}
+.ev{position:absolute;left:4px;right:4px;border-radius:8px;padding:6px 9px 16px;font-size:12px;cursor:pointer;z-index:5;box-shadow:0 2px 8px rgba(0,0,0,.1);overflow:hidden;user-select:none;transition:box-shadow .15s;height:auto;min-height:18px}
 .ev:hover{box-shadow:0 5px 16px rgba(0,0,0,.16)}
 .ev.dragging{opacity:.75;z-index:50;cursor:grabbing}
 .ev.resizing{opacity:.9;z-index:55}
 .ev-title{font-weight:700;font-size:clamp(11px,calc(11px + var(--event-scale,1)*1px),14px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ev-time{font-size:clamp(9px,calc(9px + var(--event-scale,1)*1px),12px);opacity:.75;margin-top:1px}
-.ev-meta{margin-top:3px;display:flex;flex-direction:column;gap:2px}
+.ev-meta{margin-top:4px;display:flex;flex-direction:column;gap:3px;padding-bottom:2px}
 .ev-tag{display:inline-flex;align-items:center;gap:2px;font-size:clamp(9px,calc(9px + var(--event-scale,1)*.8px),11px);font-weight:500;padding:1px 5px;border-radius:20px;background:rgba(255,255,255,.55);width:fit-content;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ev-note-tag{white-space:normal;line-height:1.25;max-width:calc(100% - 8px)}
 .ev-compact .ev-meta{display:none}
 .ev-compact .ev-title{font-size:11px}
 .ev-compact .ev-time{font-size:9px}
@@ -146,7 +147,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
 .field label{font-size:10px;font-weight:700;color:var(--sub);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
 .field input,.field textarea{width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 11px;font-size:14px;outline:none;transition:border .2s;font-family:inherit}
 .field input:focus,.field textarea:focus{border-color:var(--accent)}
-.field textarea{resize:vertical;min-height:48px}
+.field textarea{resize:vertical;min-height:96px}
+#evNote{min-height:130px}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .color-row{display:flex;gap:6px;flex-wrap:wrap}
 .cswatch{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s}
@@ -642,9 +644,15 @@ function placeEvents(dayEvs,col){
     g.forEach(item=>item.cols=maxCols);
   });
   const placed=items;
+  let lastFullWidthBottom=0;
   placed.forEach(({ev,s,e,col:c,cols})=>{
     const totalCols=cols||1;
-    const topPx=s*ppm,htPx=Math.max((e-s)*ppm,18);
+    const tagCount=(ev.models?.length?1:0)+(ev.products?.length||0)+(ev.locations?.length?1:0)+(ev.note?1:0);
+    const zoomMinHeight=timeZoom>=2?56+tagCount*18:timeZoom>=1.5?40+tagCount*12:18;
+    const baseTopPx=s*ppm,htPx=Math.max((e-s)*ppm,zoomMinHeight);
+    const topPx=totalCols===1?Math.max(baseTopPx,lastFullWidthBottom):baseTopPx;
+    if(totalCols===1)lastFullWidthBottom=topPx+htPx+8;
+    const showMeta=htPx>=48||timeZoom>=1.75;
     const eventScale=Math.max(.8,Math.min(1.8,htPx/48));
     const wPct=96/totalCols,lPct=2+c*wPct,rPct=2+(totalCols-c-1)*wPct;
     const el=document.createElement('div');
@@ -660,10 +668,11 @@ function placeEvents(dayEvs,col){
     if(ev.models?.length)tags.push(`👤 ${ev.models.join(', ')}`);
     prodTags.forEach(t=>tags.push(t));
     if(ev.locations?.length)tags.push(`📍 ${ev.locations.join(', ')}`);
+    if(ev.note)tags.push(`Note: ${ev.note}`);
     el.innerHTML=`<div class="ev-del">×</div>
       <div class="ev-title">${ev.title}</div>
       <div class="ev-time">${ev.start} – ${ev.end}</div>
-      ${htPx>40?`<div class="ev-meta">${tags.map(t=>`<span class="ev-tag">${t}</span>`).join('')}</div>`:''}
+      ${showMeta?`<div class="ev-meta">${tags.map(t=>`<span class="ev-tag${t.startsWith('Note:')?' ev-note-tag':''}">${t}</span>`).join('')}</div>`:''}
       <div class="ev-resize"></div>`;
     el.addEventListener('mousedown',e=>{if(e.target.classList.contains('ev-resize')||e.target.classList.contains('ev-del'))return;startDrag(e,ev,el);});
     el.querySelector('.ev-resize').addEventListener('mousedown',e=>{e.stopPropagation();startResize(e,ev,el);});
