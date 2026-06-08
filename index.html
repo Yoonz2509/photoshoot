@@ -609,14 +609,41 @@ function renderDayView(){
 
 function placeEvents(dayEvs,col){
   const ppm=pxPerMin();
-  const placed=[];
-  dayEvs.forEach(ev=>{
-    const s=timeToMin(ev.start),e=Math.max(timeToMin(ev.end||ev.start)+5,s+5);
-    let c=0;placed.forEach(p=>{if(s<p.e&&e>p.s)c=Math.max(c,p.col+1);});
-    placed.push({ev,s,e,col:c});
+  const items=dayEvs.map(ev=>({
+    ev,
+    s:timeToMin(ev.start),
+    e:Math.max(timeToMin(ev.end||ev.start),timeToMin(ev.start)+5),
+    col:0,
+    cols:1
+  })).sort((a,b)=>a.s-b.s||a.e-b.e);
+  const groups=[];
+  let group=[],groupEnd=-1;
+  items.forEach(item=>{
+    if(!group.length||item.s<groupEnd-SNAP){
+      group.push(item);
+      groupEnd=Math.max(groupEnd,item.e);
+    }else{
+      groups.push(group);
+      group=[item];
+      groupEnd=item.e;
+    }
   });
-  placed.forEach(({ev,s,e,col:c})=>{
-    const totalCols=placed.filter(p=>p.s<e&&p.e>s).length||1;
+  if(group.length)groups.push(group);
+  groups.forEach(g=>{
+    const active=[];
+    g.forEach(item=>{
+      for(let i=active.length-1;i>=0;i--)if(active[i].e-SNAP<=item.s)active.splice(i,1);
+      let colIdx=0;
+      while(active.some(a=>a.col===colIdx))colIdx++;
+      item.col=colIdx;
+      active.push(item);
+    });
+    const maxCols=Math.max(1,...g.map(item=>item.col+1));
+    g.forEach(item=>item.cols=maxCols);
+  });
+  const placed=items;
+  placed.forEach(({ev,s,e,col:c,cols})=>{
+    const totalCols=cols||1;
     const topPx=s*ppm,htPx=Math.max((e-s)*ppm,18);
     const eventScale=Math.max(.8,Math.min(1.8,htPx/48));
     const wPct=96/totalCols,lPct=2+c*wPct,rPct=2+(totalCols-c-1)*wPct;
